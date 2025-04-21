@@ -3,18 +3,31 @@
 
 #include <string>
 
-struct BPTNode {
-    static constexpr int ORDER = 4;
+
+template <typename Key, size_t NODE_SIZE = 4>
+class BPTNode{
+public:
+    int node_id; // BPT node id
+    int parent_id;
     bool is_leaf;
-    int size;
-    std::string keys[ORDER - 1];
-    int values[ORDER - 1];
-    int child_indices[ORDER];
-    int next_leaf;
-    BPTNode() : is_leaf(true), size(0), next_leaf(-1) {
-        for (int i = 0; i < ORDER; i++) {
-            child_indices[i] = -1;
-        }
+    int key_count = 0;
+    Key keys[NODE_SIZE];
+    int children[NODE_SIZE + 1]; // internal page: children, leaf page: block id
+};
+
+
+template <typename Key, typename Value, size_t BLOCK_SIZE = 4>
+class DataBlock {
+public:
+    std::pair<Key, Value> data[BLOCK_SIZE];
+    int key_count;
+    int block_id;
+    int next_block_id;
+    
+    DataBlock() {
+        key_count = 0;
+        block_id = -1;
+        next_block_id = -1;
     }
 };
 
