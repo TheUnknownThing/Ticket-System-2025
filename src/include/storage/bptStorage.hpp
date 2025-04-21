@@ -44,6 +44,8 @@ private:
     
     void merge_nodes(int left_index, int right_index);
 
+    void FileInit();
+
 public:
     BPTStorage(const std::string &file_prefix);
     ~BPTStorage();

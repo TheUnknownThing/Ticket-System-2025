@@ -4,6 +4,9 @@ template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::BPTStorage(
     const std::string &file_prefix) {
   // TODO
+  node_file.initialise(file_prefix + "_node");
+  data_file.initialise(file_prefix + "_data");
+  FileInit();
 }
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
@@ -119,4 +122,14 @@ template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(
     int left_index, int right_index) {
   // TODO
+}
+
+template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
+void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::FileInit() {
+  if (node_file.is_empty()) {
+    // TODO, I will use a pseudo-root node
+  } 
+  if (data_file.is_empty()) {
+    // TODO
+  }
 }
