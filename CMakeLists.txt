@@ -1,0 +1,31 @@
+cmake_minimum_required(VERSION 3.10)
+project(Ticket-System-2025)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Add source files
+add_library(ticket_system_lib
+    src/storage/bptStorage.cpp
+)
+
+target_include_directories(ticket_system_lib PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+# Google Test
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.13.0.zip
+)
+FetchContent_MakeAvailable(googletest)
+
+enable_testing()
+
+# Add test directory
+add_subdirectory(test)
