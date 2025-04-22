@@ -16,13 +16,9 @@ private:
     
     int root_index;
     size_t node_count;
-    size_t data_block_count;
-    
-    void write_node(int index, BPTNode<Key, NODE_SIZE> &node);
-    void read_node(int index, BPTNode<Key, NODE_SIZE> &node);
-    
-    void write_data_block(int index, DataBlock<Key, Value, BLOCK_SIZE> &block);
-    void read_data_block(int index, DataBlock<Key, Value, BLOCK_SIZE> &block);
+    [[maybe_unused]] size_t data_block_count;
+
+    BPTNode<Key, NODE_SIZE> root_node;
     
     int find_leaf_node(Key key);
     
@@ -30,15 +26,30 @@ private:
     
     int create_data_block();
     
-    void insert_into_internal_node(int index, Key key, int child_index);
+    /*
+    * @brief Insert a key-value pair into a leaf node.
+    * @return false if need to split the node, true otherwise.
+    * @pa
+    */
+    bool insert_into_leaf_node(BPTNode<Key, NODE_SIZE>& node , Key key, Value value);
+
+    /*
+    * @brief Insert a key and child index into an internal node.
+    * @return false if need to split the node, true otherwise.
+    */
+    bool insert_into_internal_node(BPTNode<Key, NODE_SIZE>& node, Key key, int child_index);
     
-    bool insert_into_leaf_node(int index, Key key, Value value);
+    bool delete_from_internal_node(BPTNode<Key, NODE_SIZE>& node, Key key);
     
-    void delete_from_internal_node(int index, Key key);
-    
-    bool delete_from_leaf_node(int index, Key key, Value value);
-    
-    Value* find_in_leaf(int index, Key key);
+    bool delete_from_leaf_node(BPTNode<Key, NODE_SIZE>& node, Key key, Value value);
+
+    void merge_leaf_nodes(int left_index, int right_index);
+
+    void merge_internal_nodes(int left_index, int right_index);
+
+    void split_leaf_node(BPTNode<Key, NODE_SIZE>& node, Key key, Value value);
+
+    void split_internal_node(BPTNode<Key, NODE_SIZE>& node, Key key, int child_index);
     
     void split_node(int node_index);
     

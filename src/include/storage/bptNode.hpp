@@ -5,9 +5,9 @@
 
 
 template <typename Key, size_t NODE_SIZE = 4>
-class BPTNode{
+struct BPTNode{
 public:
-    int node_id; // BPT node id
+    int node_id; // BPT node id = index in file
     int parent_id;
     bool is_leaf;
     int key_count = 0;
@@ -17,7 +17,7 @@ public:
 
 
 template <typename Key, typename Value, size_t BLOCK_SIZE = 4>
-class DataBlock {
+struct DataBlock {
 public:
     std::pair<Key, Value> data[BLOCK_SIZE];
     int key_count;

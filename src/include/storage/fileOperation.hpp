@@ -92,6 +92,12 @@ public:
   void Delete(int index) {
     // No implementation needed for space recovery
   }
+
+  bool isEmpty() {
+    open_file(std::ios::in | std::ios::binary);
+    file.seekg(0, std::ios::end);
+    return file.tellg() == info_len * sizeof(int);
+  }
 };
 
 #endif // BPT_FILEOPERATION_HPP
