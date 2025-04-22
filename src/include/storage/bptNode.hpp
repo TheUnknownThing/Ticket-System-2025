@@ -10,8 +10,10 @@ public:
     int parent_id;
     bool is_leaf;
     int key_count = 0;
-    Key keys[NODE_SIZE];
-    int children[NODE_SIZE + 1]; // internal page: children, leaf page: block id
+
+    // Why +1? Because I would insert first, then split the node.
+    Key keys[NODE_SIZE + 1];
+    int children[NODE_SIZE + 2]; // internal page: children, leaf page: block id
 };
 
 template <typename Key, typename Value, size_t BLOCK_SIZE = 4>

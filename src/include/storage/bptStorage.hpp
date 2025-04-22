@@ -59,23 +59,38 @@ private:
   bool insert_into_internal_node(BPTNode<Key, NODE_SIZE> &node, Key key,
                                  int child_index);
 
+  /*
+   * @brief Delete a key from an internal node.
+   * @return false if need to merge the node, true otherwise.
+   */
   bool delete_from_internal_node(BPTNode<Key, NODE_SIZE> &node, Key key);
 
+  /*
+   * @brief Delete a key-value pair from a leaf node.
+   * @return false if need to merge the node, true otherwise.
+   */
   bool delete_from_leaf_node(BPTNode<Key, NODE_SIZE> &node, Key key,
                              Value value);
 
+  /*
+   * @brief Merge two leaf nodes.
+   */
   void merge_leaf_nodes(int left_index, int right_index);
 
+  /*
+   * @brief Merge two internal nodes.
+   */
   void merge_internal_nodes(int left_index, int right_index);
 
-  void split_leaf_node(BPTNode<Key, NODE_SIZE> &node, Key key, Value value);
+  /*
+   * @brief Split a leaf node.
+   */
+  void split_leaf_node(BPTNode<Key, NODE_SIZE> &node);
 
-  void split_internal_node(BPTNode<Key, NODE_SIZE> &node, Key key,
-                           int child_index);
-
-  void split_node(int node_index);
-
-  void merge_nodes(int left_index, int right_index);
+  /*
+   * @brief Split an internal node.
+   */
+  void split_internal_node(BPTNode<Key, NODE_SIZE> &node);
 
   void FileInit();
 };
