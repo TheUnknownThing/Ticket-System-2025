@@ -3,7 +3,6 @@
 
 #include <string>
 
-
 template <typename Key, size_t NODE_SIZE = 4>
 struct BPTNode{
 public:
@@ -14,7 +13,6 @@ public:
     Key keys[NODE_SIZE];
     int children[NODE_SIZE + 1]; // internal page: children, leaf page: block id
 };
-
 
 template <typename Key, typename Value, size_t BLOCK_SIZE = 4>
 struct DataBlock {
@@ -30,5 +28,6 @@ public:
         next_block_id = -1;
     }
 };
+
 
 #endif // BPT_NODE_HPP
