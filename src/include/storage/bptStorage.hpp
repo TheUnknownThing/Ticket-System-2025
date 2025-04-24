@@ -47,29 +47,25 @@ private:
 
   /*
    * @brief Insert a key-value pair into a leaf node.
-   * @return false if need to split the node, true otherwise.
    */
-  bool insert_into_leaf_node(BPTNode<Key, NODE_SIZE> &node, Key key,
+  void insert_into_leaf_node(BPTNode<Key, NODE_SIZE> &node, Key key,
                              Value value);
 
   /*
    * @brief Insert a key and child index into an internal node.
-   * @return false if need to split the node, true otherwise.
    */
-  bool insert_into_internal_node(BPTNode<Key, NODE_SIZE> &node, Key key,
+  void insert_into_internal_node(BPTNode<Key, NODE_SIZE> &node, Key key,
                                  int child_index);
 
   /*
    * @brief Delete a key from an internal node.
-   * @return false if need to merge the node, true otherwise.
    */
-  bool delete_from_internal_node(BPTNode<Key, NODE_SIZE> &node, Key key);
+  void delete_from_internal_node(BPTNode<Key, NODE_SIZE> &node, Key key);
 
   /*
    * @brief Delete a key-value pair from a leaf node.
-   * @return false if need to merge the node, true otherwise.
    */
-  bool delete_from_leaf_node(BPTNode<Key, NODE_SIZE> &node, Key key,
+  void delete_from_leaf_node(BPTNode<Key, NODE_SIZE> &node, Key key,
                              Value value);
 
   /*
