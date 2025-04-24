@@ -36,8 +36,86 @@ bool BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::remove(Key key,
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 sjtu::vector<Value>
 BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find(Key key) {
-  // TODO
-  return nullptr;
+  sjtu::vector<Value> result;
+  int leaf_index = find_leaf_node(key);
+  BPTNode<Key, NODE_SIZE> leaf_node;
+  node_file.read(leaf_node, leaf_index);
+  
+  int i = 0;
+  while (i < leaf_node.key_count && key > leaf_node.keys[i]) {
+    i++;
+  }
+  
+  if (i < leaf_node.key_count && leaf_node.children[i] != -1) {
+    DataBlock<Key, Value, BLOCK_SIZE> block;
+    data_file.read(block, leaf_node.children[i]);
+    
+    // Check values in this block
+    for (int j = 0; j < block.key_count; j++) {
+      if (block.data[j].first == key) {
+        result.push_back(block.data[j].second);
+      } else if (block.data[j].first > key) {
+        break;
+      }
+    }
+    
+    while (block.next_block_id != -1) {
+      data_file.read(block, block.next_block_id);
+      if (block.key_count == 0 || block.data[0].first > key) {
+        break;
+      }
+      bool found_key = false;
+      
+      for (int j = 0; j < block.key_count; j++) {
+        if (block.data[j].first == key) {
+          result.push_back(block.data[j].second);
+          found_key = true;
+        } else if (block.data[j].first > key) {
+          found_key = false;
+          break;
+        }
+      }
+      
+      if (!found_key) {
+        break;
+      }
+    }
+  }
+  
+  if (i > 0 && leaf_node.children[i-1] != -1) {
+    DataBlock<Key, Value, BLOCK_SIZE> block;
+    data_file.read(block, leaf_node.children[i-1]);
+    
+    for (int j = 0; j < block.key_count; j++) {
+      if (block.data[j].first == key) {
+        result.push_back(block.data[j].second);
+      }
+    }
+    
+    while (block.next_block_id != -1) {
+      data_file.read(block, block.next_block_id);
+      if (block.key_count == 0 || block.data[0].first > key) {
+        break;
+      }
+      bool found_key = false;
+      
+      for (int j = 0; j < block.key_count; j++) {
+        if (block.data[j].first == key) {
+          result.push_back(block.data[j].second);
+          found_key = true;
+        } else if (block.data[j].first > key) {
+          found_key = false;
+          break;
+        }
+      }
+      
+      if (!found_key) {
+        break;
+      }
+    }
+  }
+  
+  return result;
 }
 
 /*
