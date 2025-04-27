@@ -60,22 +60,17 @@ private:
   /*
    * @brief Merge two leaf nodes.
    */
-  void merge_leaf_nodes(BPTNode<Key, NODE_SIZE> &node);
+  void merge_nodes(BPTNode<Key, NODE_SIZE> &node);
 
   /*
-   * @brief Merge two internal nodes.
+   * @brief Split a node.
+   * @note All the corner cases when inserting is handled here
+   * Several cases:
+   * 1. node is root. -> new root.
+   * 2. node isn't root. -> split, then call insert_into_internal_node for its
+   * parents.
    */
-  void merge_internal_nodes(BPTNode<Key, NODE_SIZE> &node);
-
-  /*
-   * @brief Split a leaf node.
-   */
-  void split_leaf_node(BPTNode<Key, NODE_SIZE> &node);
-
-  /*
-   * @brief Split an internal node.
-   */
-  void split_internal_node(BPTNode<Key, NODE_SIZE> &node);
+  void split_node(BPTNode<Key, NODE_SIZE> &node);
 
   /*
    * @brief Insert a key and child index into an internal node.
@@ -89,6 +84,12 @@ private:
    * @brief Delete a key from an internal node.
    * @note This function would only be called in merge_leaf_node or
    * merge_internal_node
+   * @note All the corner cases when deleting is handled here.
+   * Several cases:
+   * 1. node is root. -> Key == 1 -> New root is its child.
+   * 2. node is root. -> Key >= 2 -> No Changes.
+   * 3. node isn't root. -> Key <= NODE_SIZE / 2 -> Merge_nodes.
+   * 4. node isn't root. -> Key > NODE_SIZE / 2 -> No Changes.
    */
   void delete_from_internal_node(BPTNode<Key, NODE_SIZE> &node, Key key);
 
