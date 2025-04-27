@@ -1,4 +1,5 @@
 #include "storage/bptStorage.hpp"
+#include "storage/bptNode.hpp"
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::BPTStorage(
@@ -374,7 +375,7 @@ template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
     BPTNode<Key, NODE_SIZE> &node, Key key) {
   if (node.is_root) {
-    if (node.key_count > 2) {
+    if (node.key_count > 1) {
       int i = 0;
       while (i < node.key_count && key > node.keys[i]) {
         i++;
@@ -386,9 +387,23 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
       node.key_count--;
       node_file.write(node, node.node_id);
     } else {
-      // TODO
-      // new root node
-      // remember to update config
+      int i = 0;
+      while (i < node.key_count && key > node.keys[i]) {
+        i++;
+      }
+      int preserved_child = node.children[1 - i];
+      BPTNode<Key, NODE_SIZE> child_node;
+      node_file.read(child_node, preserved_child);
+      child_node.is_root = true;
+      child_node.parent_id = -1;
+      node_file.Delete(node_file);
+      root_node = child_node;
+      root_index = child_node.node_id;
+      node_file.write(child_node, child_node.node_id);
+      node_count--;
+
+      node_file.write_info(node_count, 2);
+      node_file.write_info(root_index, 1);
     }
   } else {
     int i = 0;
