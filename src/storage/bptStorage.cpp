@@ -243,6 +243,16 @@ template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_leaf_nodes(
     BPTNode<Key, NODE_SIZE> &node) {
   // TODO
+  if (node.next_node_id == -1) {
+    return;
+  }
+  BPTNode<Key, NODE_SIZE> next_node;
+  node_file.read(next_node, node.next_node_id);
+  if (next_node.key_count + node.key_count <= NODE_SIZE) {
+    // merge, TODO
+  } else {
+    // borrow, TODO
+  }
 }
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
@@ -254,25 +264,73 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_internal_nodes(
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_leaf_node(
     BPTNode<Key, NODE_SIZE> &node) {
-  // TODO
+  if (node.is_root) {
+    // TODO
+  } else {
+    BPTNode<Key, NODE_SIZE> new_node;
+    for (int i = node.key_count / 2; i < node.key_count; i++) {
+      new_node.children[i - node.key_count / 2] = node.children[i];
+      new_node.keys[i - node.key_count / 2] = node.children[i];
+      new_node.key_count++;
+    }
+    new_node.children[new_node.key_count] = node.children[NODE_SIZE + 1];
+    new_node.is_leaf = true;
+    new_node.parent_id = node.parent_id;
+    node.key_count /= 2;
+    new_node.node_id = node_file.write(new_node);
+    new_node.next_node_id = node.next_node_id;
+    node.next_node_id = new_node.node_id;
+    node_file.write(node, node.node_id);
+    node_file.write(new_node, new_node.node_id);
+    
+    BPTNode<Key, NODE_SIZE> parent_node;
+    node_file.read(parent_node, node.parent_id);
+    insert_into_internal_node(parent_node, new_node.keys[0], new_node.node_id);
+  }
 }
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_internal_node(
     BPTNode<Key, NODE_SIZE> &node) {
   // TODO
+  if (node.is_root) {
+    // TODO
+  } else {
+
+  }
 }
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_internal_node(
     BPTNode<Key, NODE_SIZE> &node, Key key, int child_index) {
   // TODO
+  int i = 0;
+  while (i < node.key_count && key > node.keys[i]) {
+    i++;
+  }
+  for (int j = node.key_count; j > i; j--) {
+    node.keys[j] = node.keys[j - 1];
+    node.children[j + 1] = node.children[j];
+  }
+  node.keys[i] = key;
+  node.key_count++;
+  node.children[node.key_count] = child_index;
+  if (node.key_count > NODE_SIZE) {
+    split_internal_node(node);
+  } else {
+    node_file.write(node, node.node_id);
+  }
 }
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
     BPTNode<Key, NODE_SIZE> &node, Key key) {
   // TODO
+  if (node.is_root) {
+
+  } else {
+
+  }
 }
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>

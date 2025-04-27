@@ -12,11 +12,13 @@ public:
   bool is_leaf;
   bool is_root;
 
-  int key_count = 0;
+  int key_count;
 
   // Why +1? Because I would insert first, then split the node.
   Key keys[NODE_SIZE + 1];
   int children[NODE_SIZE + 2]; // internal page: children, leaf page: block id
+
+  BPTNode() : is_leaf(false), is_root(false), key_count(0) {}
 };
 
 template <typename Key, typename Value, size_t BLOCK_SIZE = 4>
