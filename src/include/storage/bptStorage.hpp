@@ -52,17 +52,6 @@ private:
                              Value value);
 
   /*
-   * @brief Insert a key and child index into an internal node.
-   */
-  void insert_into_internal_node(BPTNode<Key, NODE_SIZE> &node, Key key,
-                                 int child_index);
-
-  /*
-   * @brief Delete a key from an internal node.
-   */
-  void delete_from_internal_node(BPTNode<Key, NODE_SIZE> &node, Key key);
-
-  /*
    * @brief Delete a key-value pair from a leaf node.
    */
   void delete_from_leaf_node(BPTNode<Key, NODE_SIZE> &node, Key key,
@@ -71,12 +60,12 @@ private:
   /*
    * @brief Merge two leaf nodes.
    */
-  void merge_leaf_nodes(int left_index, int right_index);
+  void merge_leaf_nodes(BPTNode<Key, NODE_SIZE> &node);
 
   /*
    * @brief Merge two internal nodes.
    */
-  void merge_internal_nodes(int left_index, int right_index);
+  void merge_internal_nodes(BPTNode<Key, NODE_SIZE> &node);
 
   /*
    * @brief Split a leaf node.
@@ -87,6 +76,21 @@ private:
    * @brief Split an internal node.
    */
   void split_internal_node(BPTNode<Key, NODE_SIZE> &node);
+
+  /*
+   * @brief Insert a key and child index into an internal node.
+   * @note This function would only be called in split_leaf_node or
+   * split_internal_node
+   */
+  void insert_into_internal_node(BPTNode<Key, NODE_SIZE> &node, Key key,
+                                 int child_index);
+
+  /*
+   * @brief Delete a key from an internal node.
+   * @note This function would only be called in merge_leaf_node or
+   * merge_internal_node
+   */
+  void delete_from_internal_node(BPTNode<Key, NODE_SIZE> &node, Key key);
 
   void FileInit();
 };

@@ -64,7 +64,21 @@ public:
       data[key_count + i] = block.data[i];
     }
     key_count += block.key_count;
+    next_block_id = block.next_block_id;
     return true;
+  }
+
+  /*
+   * @brief Borrow elements from the next block
+   */
+  Key borrow(DataBlock<Key, Value, BLOCK_SIZE> &block) {
+    data[key_count] = block.data[0];
+    key_count++;
+    block.key_count--;
+    for (int j = 0; j < block.key_count - 1; j++) {
+      block.data[j] = block.data[j + 1];
+    }
+    return block.data[0].first;
   }
 
   /*
