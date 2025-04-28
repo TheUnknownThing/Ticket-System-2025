@@ -28,3 +28,5 @@ enable_testing()
 
 # Add test directory
 add_subdirectory(test)
+
+add_executable(code ${CMAKE_CURRENT_SOURCE_DIR}/submit/BPlusTree.cpp)

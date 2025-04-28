@@ -546,5 +546,4 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::FileInit() {
   }
 }
 
-
 #endif // BPT_STORAGE_HPP
