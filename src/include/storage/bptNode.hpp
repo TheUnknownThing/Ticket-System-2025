@@ -30,20 +30,16 @@ public:
   int block_id;
   int next_block_id;
 
-  DataBlock() {
-    key_count = 0;
-    block_id = -1;
-    next_block_id = -1;
-  }
+  DataBlock() : key_count(0), block_id(-1), next_block_id(-1) {}
 
   /*
    * @brief delete a key from the block.
    * @return true if the key is deleted, and second bool is true if the block
    * needs to be merged.
    */
-  std::pair<bool, bool> delete_key(Key key) {
+  std::pair<bool, bool> delete_key(Key key, Value value) {
     for (int i = 0; i < key_count; i++) {
-      if (data[i].first == key) {
+      if (data[i].first == key && data[i].second == value) {
         for (int j = i; j < key_count - 1; j++) {
           data[j] = data[j + 1];
         }

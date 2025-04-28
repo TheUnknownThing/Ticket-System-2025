@@ -251,7 +251,15 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_leaf_node(
     block.block_id = data_file.write(block);
     block.key_count = 0;
     node.children[i] = block.block_id;
+    node.keys[i] = key;
     node.key_count++;
+    if (i > 0) {
+      BlockType prev_block;
+      data_file.read(prev_block, node.children[i - 1]);
+      block.next_block_id = prev_block.next_block_id;
+      prev_block.next_block_id = block.block_id;
+      data_file.update(prev_block, prev_block.block_id);
+    }
   } else {
     // read the existing block
     data_file.read(block, node.children[i]);
@@ -293,13 +301,13 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
   while (i < node.key_count && key > node.keys[i]) {
     i++;
   }
-  if (i == node.key_count || node.keys[i] != key) {
+  if (i == node.key_count) {
     // key not found
     return;
   }
   BlockType block;
   data_file.read(block, node.children[i]);
-  auto [deleted, need_merge] = block.delete_key(key);
+  auto [deleted, need_merge] = block.delete_key(key, value);
   if (deleted && need_merge && block.next_block_id != -1) {
     BlockType next_block;
     data_file.read(next_block, block.next_block_id);
