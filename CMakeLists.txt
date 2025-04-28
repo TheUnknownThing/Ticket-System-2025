@@ -4,12 +4,10 @@ project(Ticket-System-2025)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Add source files
-add_library(ticket_system_lib
-    src/storage/bptStorage.cpp
-)
+# Create a header-only library for template classes
+add_library(ticket_system_lib INTERFACE)
 
-target_include_directories(ticket_system_lib PUBLIC
+target_include_directories(ticket_system_lib INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
@@ -22,6 +20,7 @@ include(FetchContent)
 FetchContent_Declare(
     googletest
     URL https://github.com/google/googletest/archive/refs/tags/v1.13.0.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(googletest)
 
