@@ -125,14 +125,7 @@ public:
   }
 
   friend std::istream &operator>>(std::istream &is, string64 &str) {
-    str.clear();
-    char ch;
-    size_t i = 0;
-    while (i < 64 && is.get(ch) && !std::isspace(ch)) {
-      str.s[i++] = ch;
-    }
-    str.s[i] = '\0';
-
+    is >> str.s;
     return is;
   }
 
