@@ -4,6 +4,7 @@
 #include "bptNode.hpp"
 #include "fileOperation.hpp"
 #include "stl/vector.hpp"
+#include <functional>
 #include <string>
 
 template <typename Key, typename Value, size_t NODE_SIZE = 4,
@@ -93,6 +94,8 @@ private:
   void delete_from_internal_node(NodeType &node, Key key);
 
   void FileInit();
+
+  sjtu::vector<Value> sort_result(sjtu::vector<Value> &vec);
 };
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
@@ -144,7 +147,7 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find(Key key) {
     BlockType block;
     data_file.read(block, leaf_node.children[i]);
 
-    // Check values in this block
+    // Check current block
     for (int j = 0; j < block.key_count; j++) {
       if (block.data[j].first == key) {
         result.push_back(block.data[j].second);
@@ -153,63 +156,23 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find(Key key) {
       }
     }
 
+    // Check linked blocks
     while (block.next_block_id != -1) {
       data_file.read(block, block.next_block_id);
       if (block.key_count == 0 || block.data[0].first > key) {
         break;
       }
-      bool found_key = false;
-
       for (int j = 0; j < block.key_count; j++) {
         if (block.data[j].first == key) {
           result.push_back(block.data[j].second);
-          found_key = true;
         } else if (block.data[j].first > key) {
-          found_key = false;
           break;
         }
-      }
-
-      if (!found_key) {
-        break;
       }
     }
   }
 
-  if (i > 0 && leaf_node.children[i - 1] != -1) {
-    BlockType block;
-    data_file.read(block, leaf_node.children[i - 1]);
-
-    for (int j = 0; j < block.key_count; j++) {
-      if (block.data[j].first == key) {
-        result.push_back(block.data[j].second);
-      }
-    }
-
-    while (block.next_block_id != -1) {
-      data_file.read(block, block.next_block_id);
-      if (block.key_count == 0 || block.data[0].first > key) {
-        break;
-      }
-      bool found_key = false;
-
-      for (int j = 0; j < block.key_count; j++) {
-        if (block.data[j].first == key) {
-          result.push_back(block.data[j].second);
-          found_key = true;
-        } else if (block.data[j].first > key) {
-          found_key = false;
-          break;
-        }
-      }
-
-      if (!found_key) {
-        break;
-      }
-    }
-  }
-
-  return result;
+  return sort_result(result);
 }
 
 /*
@@ -548,6 +511,44 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::FileInit() {
 
     node_file.read(root_node, root_index);
   }
+}
+
+template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
+sjtu::vector<Value> BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::sort_result(
+    sjtu::vector<Value> &vec) {
+  if (vec.size() <= 1)
+    return vec;
+
+  auto partition = [&vec](int low, int high) {
+    Value pivot = vec[high];
+    int i = low - 1;
+
+    for (int j = low; j < high; j++) {
+      if (vec[j] <= pivot) {
+        i++;
+        Value temp = vec[i];
+        vec[i] = vec[j];
+        vec[j] = temp;
+      }
+    }
+
+    Value temp = vec[i + 1];
+    vec[i + 1] = vec[high];
+    vec[high] = temp;
+
+    return i + 1;
+  };
+
+  std::function<void(int, int)> quicksort = [&](int low, int high) {
+    if (low < high) {
+      int pi = partition(low, high);
+      quicksort(low, pi - 1);
+      quicksort(pi + 1, high);
+    }
+  };
+
+  quicksort(0, vec.size() - 1);
+  return vec;
 }
 
 #endif // BPT_STORAGE_HPP
