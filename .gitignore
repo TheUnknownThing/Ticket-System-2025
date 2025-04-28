@@ -1,3 +1,13 @@
 .cache/
 build/
 test/storage/t2.bash
+bin/
+lib/
+CMakeFiles/
+_deps/
+*.o
+*.so
+*.a
+*.cmake
+Makefile
+CMakeCache.txt
