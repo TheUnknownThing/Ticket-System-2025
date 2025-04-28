@@ -309,7 +309,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
     if (next_block.key_count > BLOCK_SIZE / 2) {
       // borrow elements
       Key new_key = block.borrow(next_block);
-      node.children[i + 1] = new_key;
+      node.keys[i + 1] = new_key;
       node_file.update(node, node.node_id);
       data_file.update(block, block.block_id);
       data_file.update(next_block, block.next_block_id);
@@ -398,7 +398,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(
     child_1.children[node.key_count / 2] = node.children[node.key_count / 2];
     for (int j = node.key_count / 2 + 1; j < node.key_count; j++) {
       child_2.keys[j - node.key_count / 2 - 1] = node.keys[j];
-      child_2.children[j - node.key_count / 2 - 1] = node.keys[j];
+      child_2.children[j - node.key_count / 2 - 1] = node.children[j];
       child_2.key_count++;
     }
     child_2.children[child_2.key_count] = node.children[node.key_count];
@@ -425,7 +425,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(
     BPTNode<Key, NODE_SIZE> new_node;
     for (int i = node.key_count / 2; i < node.key_count; i++) {
       new_node.children[i - node.key_count / 2] = node.children[i];
-      new_node.keys[i - node.key_count / 2] = node.children[i];
+      new_node.keys[i - node.key_count / 2] = node.keys[i];
       new_node.key_count++;
     }
     new_node.children[new_node.key_count] = node.children[NODE_SIZE + 1];

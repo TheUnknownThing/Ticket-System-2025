@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Create a header-only library for template classes
 add_library(ticket_system_lib INTERFACE)
 
-target_include_directories(ticket_system_lib INTERFACE
+include_directories(ticket_system_lib INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
@@ -29,4 +29,4 @@ enable_testing()
 # Add test directory
 add_subdirectory(test)
 
-add_executable(code ${CMAKE_CURRENT_SOURCE_DIR}/submit/BPlusTree.cpp)
+add_executable(code ${CMAKE_CURRENT_SOURCE_DIR}/src/submit/BPlusTree.cpp)
