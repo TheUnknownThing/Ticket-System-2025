@@ -1,5 +1,4 @@
 #include "storage/bptStorage.hpp"
-#include "storage/bptNode.hpp"
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::BPTStorage(
