@@ -14,14 +14,6 @@ private:
   string file_name;
   int sizeofT = sizeof(T);
 
-  void open_file(std::ios_base::openmode mode) {
-    if (!file.is_open() || (file.rdstate() & std::ios::failbit)) {
-      if (file.is_open())
-        file.close();
-      file.open(file_name, mode);
-    }
-  }
-
 public:
   FileOperation() = default;
 
@@ -35,14 +27,16 @@ public:
   void initialise(string FN = "") {
     if (FN != "")
       file_name = FN;
-    if (file.is_open())
+    file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+    if (!file.is_open()) {
+      file.clear();
+      file.open(file_name, std::ios::out | std::ios::binary);
       file.close();
-
-    file.open(file_name, std::ios::out);
-    int tmp = 0;
-    for (int i = 0; i < info_len; ++i)
-      file.write(reinterpret_cast<char *>(&tmp), sizeof(int));
-    file.close();
+      file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+      int tmp = 0;
+      for (int i = 0; i < info_len; ++i)
+        file.write(reinterpret_cast<char *>(&tmp), sizeof(int));
+    }
   }
 
   //读出第n个int的值赋给tmp，1_base
@@ -50,7 +44,6 @@ public:
     if (n > info_len)
       return;
 
-    open_file(std::ios::in | std::ios::binary);
     file.seekg((n - 1) * sizeof(int));
     file.read(reinterpret_cast<char *>(&tmp), sizeof(int));
   }
@@ -60,14 +53,12 @@ public:
     if (n > info_len)
       return;
 
-    open_file(std::ios::in | std::ios::out | std::ios::binary);
     file.seekp((n - 1) * sizeof(int));
     file.write(reinterpret_cast<char *>(&tmp), sizeof(int));
   }
 
   //在文件合适位置写入类对象t，并返回写入的位置索引index
   int write(T &t) {
-    open_file(std::ios::in | std::ios::out | std::ios::binary);
     file.seekp(0, std::ios::end);
     int index = file.tellp();
     file.write(reinterpret_cast<char *>(&t), sizeof(T));
@@ -76,14 +67,12 @@ public:
 
   //用t的值更新位置索引index对应的对象
   void update(T &t, const int index) {
-    open_file(std::ios::in | std::ios::out | std::ios::binary);
     file.seekp(index);
     file.write(reinterpret_cast<char *>(&t), sizeof(T));
   }
 
   //读出位置索引index对应的T对象的值并赋值给t
   void read(T &t, const int index) {
-    open_file(std::ios::in | std::ios::binary);
     file.seekg(index);
     file.read(reinterpret_cast<char *>(&t), sizeof(T));
   }
@@ -94,7 +83,6 @@ public:
   }
 
   bool isEmpty() {
-    open_file(std::ios::in | std::ios::binary);
     file.seekg(0, std::ios::end);
     return file.tellg() == info_len * sizeof(int);
   }

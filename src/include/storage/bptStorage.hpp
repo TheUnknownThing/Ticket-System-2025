@@ -251,6 +251,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_leaf_node(
     block.block_id = data_file.write(block);
     block.key_count = 0;
     node.children[i] = block.block_id;
+    node.key_count++;
   } else {
     // read the existing block
     data_file.read(block, node.children[i]);
@@ -280,9 +281,8 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_leaf_node(
       node_file.update(node, node.node_id);
     }
   } else {
-    // write the block back
+    node_file.update(node, node.node_id);
     data_file.update(block, block.block_id);
-    // nothing to do
   }
 }
 
@@ -522,6 +522,9 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::FileInit() {
     root_node.is_root = true;
     root_node.next_node_id = -1;
     root_node.key_count = 0;
+    for (int i = 0; i < NODE_SIZE + 1; i++) {
+      root_node.children[i] = -1;
+    }
 
     root_index = node_file.write(root_node);
     root_node.node_id = root_index;

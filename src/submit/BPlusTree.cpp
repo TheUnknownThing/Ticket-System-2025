@@ -34,6 +34,9 @@ signed main() {
       for (const auto &val : result) {
         std::cout << val << " ";
       }
+      if (result.empty()) {
+        std::cout << "null";
+      }
       std::cout << "\n";
     }
   }
