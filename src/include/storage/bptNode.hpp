@@ -7,7 +7,6 @@ template <typename Key, size_t NODE_SIZE = 4> struct BPTNode {
 public:
   int node_id; // BPT node id = index in file
   int parent_id;
-  int next_node_id; // sibling node id
 
   bool is_leaf;
   bool is_root;
@@ -16,7 +15,7 @@ public:
 
   // Why +1? Because I would insert first, then split the node.
   Key keys[NODE_SIZE + 1];
-  int children[NODE_SIZE + 2]; // internal page: children, leaf page: block id
+  int children[NODE_SIZE + 1]; // internal page: children, leaf page: block id
 
   BPTNode() : is_leaf(false), is_root(false), key_count(0) {}
 };
@@ -44,7 +43,7 @@ public:
           data[j] = data[j + 1];
         }
         key_count--;
-        return {true, key_count < BLOCK_SIZE / 2};
+        return {true, key_count < BLOCK_SIZE / 3};
       }
     }
     return {false, false};
@@ -55,7 +54,7 @@ public:
    * @return true if the merge is successful, false if the merge fails.
    */
   bool merge_block(DataBlock<Key, Value, BLOCK_SIZE> &block) {
-    if (key_count + block.key_count > BLOCK_SIZE) {
+    if (key_count + block.key_count >= BLOCK_SIZE) {
       return false;
     }
     for (int i = 0; i < block.key_count; i++) {
@@ -76,7 +75,7 @@ public:
     for (int j = 0; j < block.key_count - 1; j++) {
       block.data[j] = block.data[j + 1];
     }
-    return block.data[0].first;
+    return data[key_count - 1];
   }
 
   /*

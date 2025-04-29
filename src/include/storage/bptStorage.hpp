@@ -51,17 +51,17 @@ private:
   /*
    * @brief Insert a key-value pair into a leaf node.
    */
-  void insert_into_leaf_node(NodeType &node, Key key, Value value);
+  void insert_into_leaf_node(int index, Key key, Value value);
 
   /*
    * @brief Delete a key-value pair from a leaf node.
    */
-  void delete_from_leaf_node(NodeType &node, Key key, Value value);
+  void delete_from_leaf_node(int index, Key key, Value value);
 
   /*
    * @brief Merge two leaf nodes.
    */
-  void merge_nodes(NodeType &node);
+  void merge_nodes(int index);
 
   /*
    * @brief Split a node.
@@ -71,14 +71,14 @@ private:
    * 2. node isn't root. -> split, then call insert_into_internal_node for its
    * parents.
    */
-  void split_node(NodeType &node);
+  void split_node(int index);
 
   /*
    * @brief Insert a key and child index into an internal node.
    * @note This function would only be called in split_leaf_node or
    * split_internal_node
    */
-  void insert_into_internal_node(NodeType &node, Key key, int child_index);
+  void insert_into_internal_node(int index, Key key, int child_index);
 
   /*
    * @brief Delete a key from an internal node.
@@ -91,7 +91,7 @@ private:
    * 3. node isn't root. -> Key <= NODE_SIZE / 2 -> Merge_nodes.
    * 4. node isn't root. -> Key > NODE_SIZE / 2 -> No Changes.
    */
-  void delete_from_internal_node(NodeType &node, Key key);
+  void delete_from_internal_node(int index, Key key);
 
   void FileInit();
 
@@ -116,18 +116,14 @@ template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert(Key key,
                                                            Value value) {
   int leaf_index = find_leaf_node(key);
-  NodeType leaf_node;
-  node_file.read(leaf_node, leaf_index);
-  insert_into_leaf_node(leaf_node, key, value);
+  insert_into_leaf_node(leaf_index, key, value);
 }
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::remove(Key key,
                                                            Value value) {
   int leaf_index = find_leaf_node(key);
-  NodeType leaf_node;
-  node_file.read(leaf_node, leaf_index);
-  delete_from_leaf_node(leaf_node, key, value);
+  delete_from_leaf_node(leaf_index, key, value);
 }
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
@@ -201,8 +197,10 @@ int BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find_leaf_node(Key key) {
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_leaf_node(
-    NodeType &node, Key key, Value value) {
+    int index, Key key, Value value) {
 
+  NodeType node;
+  node_file.read(node, index);
   // insert
   int i = 0;
   while (i < node.key_count && key > node.keys[i]) {
@@ -239,17 +237,18 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_leaf_node(
     data_file.update(new_block, new_block.block_id);
 
     // Insert separator key
-    for (int j = node.key_count; j > i; j--) {
+    for (int j = node.key_count; j > i + 1; j--) {
       node.keys[j] = node.keys[j - 1];
-      node.children[j + 1] = node.children[j];
+      node.children[j] = node.children[j - 1];
     }
 
-    node.keys[i] = new_block.data[0].first;
+    node.keys[i + 1] = new_block.data[0].first;
     node.children[i + 1] = new_block.block_id;
     node.key_count++;
 
     if (node.key_count > NODE_SIZE) {
-      split_node(node);
+      node_file.update(node, node.node_id);
+      split_node(index);
     } else {
       node_file.update(node, node.node_id);
     }
@@ -261,7 +260,9 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_leaf_node(
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
-    NodeType &node, Key key, Value value) {
+    int index, Key key, Value value) {
+  NodeType node;
+  node_file.read(node, index);
   int i = 0;
   while (i < node.key_count && key > node.keys[i]) {
     i++;
@@ -285,16 +286,19 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
       data_file.update(next_block, block.next_block_id);
     } else {
       block.merge_block(next_block);
+      data_file.remove(next_block.block_id);
       for (int j = i; j < node.key_count - 1; ++j) {
         node.keys[j] = node.keys[j + 1];
-        node.children[j + 1] = node.children[j + 2];
+      }
+      for (int j = i + 1; j < node.key_count - 1; ++j) {
+        node.children[j] = node.children[j + 1];
       }
       node.key_count--;
-      node.children[node.key_count + 1] = -1;
+      node.children[node.key_count] = -1;
       data_file.update(block, block.block_id);
-      const size_t min_keys = (NODE_SIZE + 1) / 2;
-      if (node.key_count < min_keys) {
-        merge_nodes(node);
+      if (node.key_count < NODE_SIZE / 3) {
+        node_file.update(node, node.node_id);
+        merge_nodes(index);
       } else {
         node_file.update(node, node.node_id);
       }
@@ -306,61 +310,97 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
 }
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
-void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(
-    NodeType &node) {
-  if (node.next_node_id == -1) {
+void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
+  NodeType node;
+  node_file.read(node, index);
+  if (node.parent_id == -1) {
     return;
   }
-  NodeType next_node;
-  node_file.read(next_node, node.next_node_id);
-  if (next_node.key_count + node.key_count <= NODE_SIZE) {
-    // merge
+  NodeType parent_node;
+  node_file.read(parent_node, node.parent_id);
+  int j = 0;
+  while (parent_node.children[j] != index) {
+    j++;
+  }
+
+  NodeType left, right;
+  // Check left sibling
+  if (j != 0) {
+    node_file.read(left, parent_node.children[j - 1]);
+    if (left.key_count > NODE_SIZE / 2) {
+      // adopt from left
+      for (int j = node.key_count; j > 0; j--) {
+        node.keys[j] = node.keys[j - 1];
+        node.children[j] = node.children[j - 1];
+      }
+      node.keys[0] = left.keys[left.key_count - 1];
+      node.children[0] = left.children[left.key_count - 1];
+
+      node.key_count++;
+      left.key_count--;
+
+      parent_node.keys[j - 1] = left.keys[left.key_count - 1];
+      return;
+    }
+  }
+  if (j != parent_node.key_count) {
+    node_file.read(right, parent_node.children[j + 1]);
+    if (right.key_count > NODE_SIZE / 2) {
+      // adopt from right
+      node.keys[node.key_count] = right.keys[0];
+      node.children[node.key_count] = right.children[0];
+      for (int j = 0; j < right.key_count; j++) {
+        right.keys[j] = right.keys[j + 1];
+        right.children[j] = right.children[j + 1];
+      }
+
+      node.key_count++;
+      right.key_count--;
+
+      parent_node.keys[j] = node.keys[node.key_count - 1];
+      return;
+    }
+  }
+  if (j != 0) {
+    // merge left
     for (int j = 0; j < node.key_count; j++) {
-      node.keys[j + node.key_count] = next_node.keys[j];
-      node.children[j + node.key_count] = next_node.children[j];
+      left.keys[j + left.key_count] = node.keys[j];
+      left.children[j + left.key_count] = node.children[j];
     }
-    node.key_count += next_node.key_count;
-    node.next_node_id = next_node.next_node_id;
+
+    left.key_count += node.key_count;
+    node_file.update(left, left.node_id);
+    node_file.remove(node, node.node_id);
+
+    delete_from_internal_node(parent_node.node_id, parent_node.keys[j]);
+  }
+  if (j != parent_node.key_count) {
+    // merge right
+    for (int j = 0; j < right.key_count; j++) {
+      node.keys[j + node.key_count] = right.keys[j];
+      node.children[j + node.key_count] = right.children[j];
+    }
+
+    node.key_count += right.key_count;
+    parent_node.keys[j + 1] =
+        node.node_id; // doing this line is because I only need to delete
+                      // keys[j] and children[j] afterwards
     node_file.update(node, node.node_id);
-    node_file.remove(next_node.node_id);
-
-    NodeType parent_node;
-    node_file.read(parent_node, node.parent_id);
-
-    delete_from_internal_node(parent_node, next_node.keys[0]);
-  } else {
-    // borrow elements
-    node.keys[node.key_count] = next_node.keys[0];
-    node.children[node.key_count + 1] = next_node.children[0];
-    for (int j = 0; j < next_node.key_count; j++) {
-      next_node.keys[j] = next_node.keys[j + 1];
-      next_node.children[j] = next_node.children[j + 1];
-    }
-    next_node.children[next_node.key_count - 1] =
-        next_node.children[next_node.key_count];
-
-    node.key_count++;
-    next_node.key_count--;
-
-    NodeType parent_node;
-    node_file.read(parent_node, node.parent_id);
-
-    int k = 0;
-    while (k < parent_node.key_count &&
-           parent_node.children[k + 1] != next_node.node_id) {
-      k++;
-    }
-    parent_node.keys[k] =
-        next_node.keys[0]; // Update with the new first key of next_node
-
     node_file.update(parent_node, parent_node.node_id);
-    node_file.update(node, node.node_id);
-    node_file.update(next_node, next_node.node_id);
+    node_file.remove(right, right.node_id);
+
+    delete_from_internal_node(parent_node.node_id, parent_node.keys[j]);
   }
 }
 
+// =========================
+// BELOW STILL NEED REFACTOR
+// =========================
+
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
-void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(NodeType &node) {
+void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
+  NodeType node;
+  node_file.read(node, index);
   if (node.is_root) {
     NodeType child_1, child_2;
     for (int j = 0; j < node.key_count / 2; j++) {
@@ -378,8 +418,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(NodeType &node) {
 
     child_1.node_id = node_file.write(child_1);
     child_2.node_id = node_file.write(child_2);
-
-    child_1.next_node_id = child_2.node_id;
 
     node.key_count = 1;
     node.children[0] = child_1.node_id;
@@ -407,20 +445,19 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(NodeType &node) {
     new_node.parent_id = node.parent_id;
     node.key_count /= 2;
     new_node.node_id = node_file.write(new_node);
-    new_node.next_node_id = node.next_node_id;
-    node.next_node_id = new_node.node_id;
     node_file.update(node, node.node_id);
     node_file.update(new_node, new_node.node_id);
 
-    NodeType parent_node;
-    node_file.read(parent_node, node.parent_id);
-    insert_into_internal_node(parent_node, new_node.keys[0], new_node.node_id);
+    insert_into_internal_node(node.parent_id, new_node.keys[0],
+                              new_node.node_id);
   }
 }
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_internal_node(
-    NodeType &node, Key key, int child_index) {
+    int index, Key key, int child_index) {
+  NodeType node;
+  node_file.read(node, index);
   int i = 0;
   while (i < node.key_count && key > node.keys[i]) {
     i++;
@@ -430,10 +467,11 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_internal_node(
     node.children[j + 1] = node.children[j];
   }
   node.keys[i] = key;
+  node.children[i + 1] = child_index;
   node.key_count++;
-  node.children[node.key_count] = child_index;
   if (node.key_count > NODE_SIZE) {
-    split_node(node);
+    node_file.update(node, node.node_id);
+    split_node(index);
   } else {
     node_file.update(node, node.node_id);
   }
@@ -441,7 +479,9 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_internal_node(
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
-    NodeType &node, Key key) {
+    int index, Key key) {
+  NodeType node;
+  node_file.read(node, index);
   if (node.is_root) {
     if (node.key_count > 1) {
       int i = 0;
@@ -484,7 +524,8 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
     }
     node.key_count--;
     if (node.key_count < NODE_SIZE / 2) {
-      merge_nodes(node);
+      node_file.update(node, node.node_id);
+      merge_nodes(index);
     } else {
       node_file.update(node, node.node_id);
     }
@@ -497,7 +538,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::FileInit() {
     root_node.parent_id = -1;
     root_node.is_leaf = true;
     root_node.is_root = true;
-    root_node.next_node_id = -1;
     root_node.key_count = 0;
     for (int i = 0; i < NODE_SIZE + 1; i++) {
       root_node.children[i] = -1;
