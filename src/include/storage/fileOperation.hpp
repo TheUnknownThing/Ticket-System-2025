@@ -78,7 +78,7 @@ public:
   }
 
   //删除位置索引index对应的对象
-  void Delete(int index) {
+  void remove(int index) {
     // No implementation needed for space recovery
   }
 

@@ -1,8 +1,24 @@
 #!/bin/bash
 cp ../../build/code .
 
+preserve_data=false
+
+for arg in "$@"; do
+    if [ "$arg" = "--preserve" ] || [ "$arg" = "-p" ]; then
+        preserve_data=true
+        shift
+    fi
+    if [ "$arg" = "--clean" ] || [ "$arg" = "-c" ]; then
+        rm -f data_data data_node
+        rm -f *.test_out
+        shift
+    fi
+done
+
 if [ $# -eq 0 ]; then
-    echo "Usage: $0 <test_number1> [test_number2] ..."
+    echo "Usage: $0 [--preserve] <test_number1> [test_number2] ..."
+    echo "  --preserve, -p: keeps data files after test"
+    echo "  --clean, -c: cleans up data before running tests"
     exit 1
 fi
 
@@ -21,8 +37,11 @@ for num in "$@"; do
     else
         echo "Test $num passed."
     fi
-    rm -f data_data data_node
+    
+    if [ "$preserve_data" = false ]; then
+        rm -f data_data data_node
+        rm -f *.test_out
+    fi
 done
 
 rm -f code
-rm -f *.test_out

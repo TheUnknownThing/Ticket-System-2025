@@ -271,7 +271,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
   BlockType block;
   data_file.read(block, node.children[i]);
   auto [deleted, need_merge] = block.delete_key(key, value);
-  if (deleted && need_merge && block.next_block_id != -1) {
+  if (deleted && need_merge && block.next_block_id != -1 && !node.is_root) {
     BlockType next_block;
     data_file.read(next_block, block.next_block_id);
     if (next_block.key_count > BLOCK_SIZE / 2) {
@@ -287,7 +287,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
         node.children[j] = node.children[j + 1];
       }
       node.key_count--;
-      if (node.key_count < NODE_SIZE / 2) {
+      if (node.key_count < (node.is_root ? 2 : NODE_SIZE / 2)){
         // merge
         merge_nodes(node);
       } else {
@@ -317,6 +317,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(
     node.key_count += next_node.key_count;
     node.next_node_id = next_node.next_node_id;
     node_file.update(node, node.node_id);
+    node_file.remove(next_node.node_id);
 
     NodeType parent_node;
     node_file.read(parent_node, node.parent_id);
@@ -458,7 +459,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
       node_file.read(child_node, preserved_child);
       child_node.is_root = true;
       child_node.parent_id = -1;
-      node_file.Delete(node.node_id);
+      node_file.remove(node.node_id);
       root_node = child_node;
       root_index = child_node.node_id;
       node_file.update(child_node, child_node.node_id);
