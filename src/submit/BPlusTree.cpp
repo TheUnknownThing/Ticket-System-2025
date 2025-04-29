@@ -10,7 +10,7 @@ signed main() {
   std::cin >> n;
   std::string op;
 
-  BPTStorage<sjtu::string64, int, 5, 57> book("data"); // for debugging, normal: (7, 54)
+  BPTStorage<sjtu::string64, int, 5, 5> book("data"); // for debugging, normal: (7, 54)
 
   for (int i = 0; i < n; ++i) {
     std::cin >> op;

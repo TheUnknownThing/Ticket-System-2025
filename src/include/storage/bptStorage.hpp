@@ -181,6 +181,7 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find(Key key) {
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 int BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find_leaf_node(Key key) {
+  node_file.read(root_node, root_index);
   NodeType current_node = root_node;
   int current_id = root_index;
 
@@ -235,6 +236,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_leaf_node(
     new_block.block_id = data_file.write(new_block);
     block.next_block_id = new_block.block_id;
     data_file.update(block, block.block_id);
+    data_file.update(new_block, new_block.block_id);
 
     // Insert separator key
     for (int j = node.key_count; j > i; j--) {
@@ -271,7 +273,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
   BlockType block;
   data_file.read(block, node.children[i]);
   auto [deleted, need_merge] = block.delete_key(key, value);
-  if (deleted && need_merge && block.next_block_id != -1 && !node.is_root) {
+  if (deleted && need_merge && i != node.key_count && !node.is_root) {
     BlockType next_block;
     data_file.read(next_block, block.next_block_id);
     if (next_block.key_count > BLOCK_SIZE / 2) {
@@ -283,12 +285,15 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
       data_file.update(next_block, block.next_block_id);
     } else {
       block.merge_block(next_block);
-      for (int j = i; j <= node.key_count - 2; j++) {
-        node.children[j] = node.children[j + 1];
+      for (int j = i; j < node.key_count - 1; ++j) {
+        node.keys[j] = node.keys[j + 1];
+        node.children[j + 1] = node.children[j + 2];
       }
       node.key_count--;
-      if (node.key_count < (node.is_root ? 2 : NODE_SIZE / 2)){
-        // merge
+      node.children[node.key_count + 1] = -1;
+      data_file.update(block, block.block_id);
+      const size_t min_keys = (NODE_SIZE + 1) / 2;
+      if (node.key_count < min_keys) {
         merge_nodes(node);
       } else {
         node_file.update(node, node.node_id);
@@ -296,7 +301,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
     }
   } else {
     // write the block back
-    data_file.update(block, node.children[i]);
+    data_file.update(block, block.block_id);
   }
 }
 

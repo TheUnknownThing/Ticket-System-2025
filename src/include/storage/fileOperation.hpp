@@ -67,6 +67,9 @@ public:
 
   //用t的值更新位置索引index对应的对象
   void update(T &t, const int index) {
+    if (index == -1) {
+      return;
+    }
     file.seekp(index);
     file.write(reinterpret_cast<char *>(&t), sizeof(T));
   }
