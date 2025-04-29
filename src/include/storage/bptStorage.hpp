@@ -279,7 +279,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
     if (next_block.key_count > BLOCK_SIZE / 2) {
       // borrow elements
       Key new_key = block.borrow(next_block);
-      node.keys[i + 1] = new_key;
+      node.keys[i] = new_key;
       node_file.update(node, node.node_id);
       data_file.update(block, block.block_id);
       data_file.update(next_block, block.next_block_id);
@@ -345,13 +345,13 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(
     NodeType parent_node;
     node_file.read(parent_node, node.parent_id);
 
-    for (int j = 0; j < parent_node.key_count; j++) {
-      if (parent_node.keys[j] == node.keys[0] &&
-          parent_node.keys[j + 1] == node.keys[node.key_count - 1]) {
-        parent_node.keys[j + 1] = next_node.keys[0];
-        break;
-      }
+    int k = 0;
+    while (k < parent_node.key_count &&
+           parent_node.children[k + 1] != next_node.node_id) {
+      k++;
     }
+    parent_node.keys[k] =
+        next_node.keys[0]; // Update with the new first key of next_node
 
     node_file.update(parent_node, parent_node.node_id);
     node_file.update(node, node.node_id);

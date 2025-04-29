@@ -16,3 +16,4 @@ data_data
 data_node
 visualizer
 *.test_out
+viz
