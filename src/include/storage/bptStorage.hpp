@@ -5,8 +5,8 @@
 #include "fileOperation.hpp"
 #include "stl/vector.hpp"
 #include <functional>
-#include <string>
 #include <iostream>
+#include <string>
 
 template <typename Key, typename Value, size_t NODE_SIZE = 4,
           size_t BLOCK_SIZE = 4>
@@ -283,6 +283,8 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
       // borrow elements
       Key new_key = block.borrow(next_block);
       node.keys[i] = new_key;
+      node.keys[i + 1] = next_block.data[next_block.key_count - 1]
+                             .first; // maybe we don't need to change
       node_file.update(node, node.node_id);
       data_file.update(block, block.block_id);
       data_file.update(next_block, next_block.block_id);
@@ -358,7 +360,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
       for (int j = 0; j < right.key_count; j++) {
         right.keys[j] = right.keys[j + 1];
         right.children[j] = right.children[j + 1];
-        
       }
 
       node.key_count++;
