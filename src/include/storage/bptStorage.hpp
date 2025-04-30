@@ -464,7 +464,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_internal_node(
     int index, Key key, int child_index, int pos) {
   NodeType node;
   node_file.read(node, index);
-  
+
   for (int j = node.key_count; j > pos; j--) {
     node.keys[j] = node.keys[j - 1];
     node.children[j] = node.children[j - 1];
@@ -487,7 +487,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
   NodeType node;
   node_file.read(node, index);
   if (node.is_root) {
-    if (node.key_count >= 3 ) {
+    if (node.key_count >= 3) {
       for (int j = pos; j < node.key_count - 1; j++) {
         node.keys[j] = node.keys[j + 1];
         node.children[j] = node.children[j + 1];
@@ -496,7 +496,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
       node_file.update(node, node.node_id);
     } else {
       // NEED REFACTOR
-      int preserved_child = node.children[1 - i];
+      int preserved_child = node.children[1 - pos];
       NodeType child_node;
       node_file.read(child_node, preserved_child);
       child_node.is_root = true;
