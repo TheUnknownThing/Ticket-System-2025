@@ -43,7 +43,7 @@ public:
           data[j] = data[j + 1];
         }
         key_count--;
-        return {true, key_count < BLOCK_SIZE / 3};
+        return {true, key_count <= BLOCK_SIZE / 3};
       }
     }
     return {false, false};
@@ -95,7 +95,7 @@ public:
     data[i] = std::make_pair(key, value);
     key_count++;
 
-    if (key_count <= BLOCK_SIZE) {
+    if (key_count < BLOCK_SIZE) {
       // no need to split
       return {false, *this};
     }
