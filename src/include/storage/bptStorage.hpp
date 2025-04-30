@@ -370,7 +370,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
 
     left.key_count += node.key_count;
     node_file.update(left, left.node_id);
-    node_file.remove(node, node.node_id);
+    node_file.remove(node.node_id);
 
     delete_from_internal_node(parent_node.node_id, j);
   }
@@ -382,12 +382,12 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
     }
 
     node.key_count += right.key_count;
-    parent_node.keys[j + 1] =
+    parent_node.children[j + 1] =
         node.node_id; // doing this line is because I only need to delete
                       // keys[j] and children[j] afterwards
     node_file.update(node, node.node_id);
     node_file.update(parent_node, parent_node.node_id);
-    node_file.remove(right, right.node_id);
+    node_file.remove(right.node_id);
 
     delete_from_internal_node(parent_node.node_id, j);
   }

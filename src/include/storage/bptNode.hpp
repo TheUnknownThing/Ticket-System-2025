@@ -75,7 +75,7 @@ public:
     for (int j = 0; j < block.key_count - 1; j++) {
       block.data[j] = block.data[j + 1];
     }
-    return data[key_count - 1];
+    return data[key_count - 1].first;
   }
 
   /*
