@@ -91,7 +91,7 @@ private:
    * 3. node isn't root. -> Key <= NODE_SIZE / 2 -> Merge_nodes.
    * 4. node isn't root. -> Key > NODE_SIZE / 2 -> No Changes.
    */
-  void delete_from_internal_node(int index, Key key);
+  void delete_from_internal_node(int index, int pos);
 
   void FileInit();
 
@@ -372,7 +372,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
     node_file.update(left, left.node_id);
     node_file.remove(node, node.node_id);
 
-    delete_from_internal_node(parent_node.node_id, parent_node.keys[j]);
+    delete_from_internal_node(parent_node.node_id, j);
   }
   if (j != parent_node.key_count) {
     // merge right
@@ -389,7 +389,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
     node_file.update(parent_node, parent_node.node_id);
     node_file.remove(right, right.node_id);
 
-    delete_from_internal_node(parent_node.node_id, parent_node.keys[j]);
+    delete_from_internal_node(parent_node.node_id, j);
   }
 }
 
@@ -483,26 +483,19 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_internal_node(
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
-    int index, Key key) {
+    int index, int pos) {
   NodeType node;
   node_file.read(node, index);
   if (node.is_root) {
-    if (node.key_count > 1) {
-      int i = 0;
-      while (i < node.key_count && key > node.keys[i]) {
-        i++;
-      }
-      for (int j = i; j < node.key_count - 1; j++) {
+    if (node.key_count >= 3 ) {
+      for (int j = pos; j < node.key_count - 1; j++) {
         node.keys[j] = node.keys[j + 1];
         node.children[j] = node.children[j + 1];
       }
       node.key_count--;
       node_file.update(node, node.node_id);
     } else {
-      int i = 0;
-      while (i < node.key_count && key > node.keys[i]) {
-        i++;
-      }
+      // NEED REFACTOR
       int preserved_child = node.children[1 - i];
       NodeType child_node;
       node_file.read(child_node, preserved_child);
@@ -518,16 +511,12 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
       node_file.write_info(root_index, 1);
     }
   } else {
-    int i = 0;
-    while (i < node.key_count && key > node.keys[i]) {
-      i++;
-    }
-    for (int j = i; j < node.key_count - 1; j++) {
+    for (int j = pos; j < node.key_count - 1; j++) {
       node.keys[j] = node.keys[j + 1];
       node.children[j] = node.children[j + 1];
     }
     node.key_count--;
-    if (node.key_count < NODE_SIZE / 2) {
+    if (node.key_count < NODE_SIZE / 3) {
       node_file.update(node, node.node_id);
       merge_nodes(index);
     } else {
