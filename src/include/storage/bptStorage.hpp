@@ -451,7 +451,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
       j++;
     }
 
-    parent_node.keys[index] = node.keys[node.key_count - 1];
+    parent_node.keys[j] = node.keys[node.key_count - 1];
 
     insert_into_internal_node(node.parent_id,
                               new_node.keys[new_node.key_count - 1],
