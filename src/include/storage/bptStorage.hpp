@@ -78,7 +78,7 @@ private:
    * @note This function would only be called in split_leaf_node or
    * split_internal_node
    */
-  void insert_into_internal_node(int index, Key key, int child_index);
+  void insert_into_internal_node(int index, Key key, int child_index, int pos);
 
   /*
    * @brief Delete a key from an internal node.
@@ -319,7 +319,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
   NodeType parent_node;
   node_file.read(parent_node, node.parent_id);
   int j = 0;
-  while (parent_node.children[j] != index) {
+  while (parent_node.children[j] != index && j < parent_node.key_count) {
     j++;
   }
 
@@ -393,10 +393,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
   }
 }
 
-// =========================
-// BELOW STILL NEED REFACTOR
-// =========================
-
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
   NodeType node;
@@ -408,23 +404,23 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
       child_1.children[j] = node.children[j];
       child_1.key_count++;
     }
-    child_1.children[node.key_count / 2] = node.children[node.key_count / 2];
-    for (int j = node.key_count / 2 + 1; j < node.key_count; j++) {
-      child_2.keys[j - node.key_count / 2 - 1] = node.keys[j];
-      child_2.children[j - node.key_count / 2 - 1] = node.children[j];
+
+    for (int j = node.key_count / 2; j < node.key_count; j++) {
+      child_2.keys[j - node.key_count / 2] = node.keys[j];
+      child_2.children[j - node.key_count / 2] = node.children[j];
       child_2.key_count++;
     }
-    child_2.children[child_2.key_count] = node.children[node.key_count];
 
     child_1.node_id = node_file.write(child_1);
     child_2.node_id = node_file.write(child_2);
 
-    node.key_count = 1;
+    node.key_count = 2;
     node.children[0] = child_1.node_id;
     node.children[1] = child_2.node_id;
+    node.keys[0] = child_1.keys[child_1.key_count - 1];
+    node.keys[1] = child_2.keys[child_2.key_count - 1];
 
-    child_1.is_leaf = node.is_leaf;
-    child_2.is_leaf = node.is_leaf;
+    child_1.is_leaf = child_2.is_leaf = node.is_leaf;
     node.is_leaf = false;
 
     child_1.parent_id = node.node_id;
@@ -440,7 +436,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
       new_node.keys[i - node.key_count / 2] = node.keys[i];
       new_node.key_count++;
     }
-    new_node.children[new_node.key_count] = node.children[NODE_SIZE + 1];
     new_node.is_leaf = node.is_leaf;
     new_node.parent_id = node.parent_id;
     node.key_count /= 2;
@@ -448,28 +443,37 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
     node_file.update(node, node.node_id);
     node_file.update(new_node, new_node.node_id);
 
-    insert_into_internal_node(node.parent_id, new_node.keys[0],
-                              new_node.node_id);
+    NodeType parent_node;
+    node_file.read(parent_node, node.parent_id);
+
+    int j = 0;
+    while (parent_node.children[j] != index && j < parent_node.key_count) {
+      j++;
+    }
+
+    parent_node.keys[index] = node.keys[node.key_count - 1];
+
+    insert_into_internal_node(node.parent_id,
+                              new_node.keys[new_node.key_count - 1],
+                              new_node.node_id, j + 1);
   }
 }
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_internal_node(
-    int index, Key key, int child_index) {
+    int index, Key key, int child_index, int pos) {
   NodeType node;
   node_file.read(node, index);
-  int i = 0;
-  while (i < node.key_count && key > node.keys[i]) {
-    i++;
-  }
-  for (int j = node.key_count; j > i; j--) {
+  
+  for (int j = node.key_count; j > pos; j--) {
     node.keys[j] = node.keys[j - 1];
-    node.children[j + 1] = node.children[j];
+    node.children[j] = node.children[j - 1];
   }
-  node.keys[i] = key;
-  node.children[i + 1] = child_index;
+  node.keys[pos] = key;
+  node.children[pos] = child_index;
   node.key_count++;
-  if (node.key_count > NODE_SIZE) {
+
+  if (node.key_count >= NODE_SIZE) {
     node_file.update(node, node.node_id);
     split_node(index);
   } else {
