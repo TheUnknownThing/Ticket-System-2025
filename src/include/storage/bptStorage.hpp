@@ -6,6 +6,7 @@
 #include "stl/vector.hpp"
 #include <functional>
 #include <string>
+#include <iostream>
 
 template <typename Key, typename Value, size_t NODE_SIZE = 4,
           size_t BLOCK_SIZE = 4>
@@ -136,7 +137,7 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find(Key key) {
     i++;
   }
 
-  if (i < leaf_node.key_count && key == leaf_node.keys[i] && leaf_node.children[i] != -1) {
+  if (i < leaf_node.key_count && leaf_node.children[i] != -1) {
     BlockType block;
     data_file.read(block, leaf_node.children[i]);
 
@@ -242,7 +243,8 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_leaf_node(
       node.children[j] = node.children[j - 1];
     }
 
-    node.keys[i + 1] = new_block.data[0].first;
+    node.keys[i] = block.data[block.key_count - 1].first;
+    node.keys[i + 1] = new_block.data[new_block.key_count - 1].first;
     node.children[i + 1] = new_block.block_id;
     node.key_count++;
 
@@ -311,6 +313,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
+  std::cout << "Merge Nodes" << std::endl; // debug
   NodeType node;
   node_file.read(node, index);
   if (node.parent_id == -1) {
@@ -414,6 +417,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
+  std::cout << "Split Node" << std::endl; // debug
   NodeType node;
   node_file.read(node, index);
   if (node.is_root) {
@@ -491,6 +495,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_internal_node(
     int index, Key key, int child_index, int pos) {
+  std::cout << "Insert into Internal Node" << std::endl; // debug
   NodeType node;
   node_file.read(node, index);
 

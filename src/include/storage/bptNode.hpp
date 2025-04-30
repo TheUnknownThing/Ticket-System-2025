@@ -102,7 +102,7 @@ public:
 
     // need to split the block
     DataBlock<Key, Value, BLOCK_SIZE> new_block;
-    int mid = (BLOCK_SIZE + 1) / 2;
+    int mid = BLOCK_SIZE / 2;
     new_block.key_count = key_count - mid;
 
     for (int j = 0; j < new_block.key_count; j++) {
@@ -110,7 +110,7 @@ public:
     }
 
     new_block.next_block_id = next_block_id;
-    next_block_id = new_block.block_id;
+    // still need to set block.next_block_id in main function
     key_count = mid;
 
     return {true, new_block};
