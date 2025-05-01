@@ -23,19 +23,19 @@ signed main() {
       std::cin >> index;
       int value;
       std::cin >> value;
-      std::cout << "Doing insert: " << index << " " << value << std::endl; // debug
+      // std::cout << "Doing insert: " << index << " " << value << std::endl; // debug
       book.insert(index, value);
     } else if (op == "delete") {
       sjtu::string64 index;
       std::cin >> index;
       int value;
       std::cin >> value;
-      std::cout << "Doing delete: " << index << " " << value << std::endl; // debug
+      // std::cout << "Doing delete: " << index << " " << value << std::endl; // debug
       book.remove(index, value);
     } else if (op == "find") {
       sjtu::string64 index;
       std::cin >> index;
-      std::cout << "Doing find: " << index << std::endl; // debug
+      // std::cout << "Doing find: " << index << std::endl; // debug
       auto result = book.find(index);
       for (const auto &val : result) {
         std::cout << val << " ";

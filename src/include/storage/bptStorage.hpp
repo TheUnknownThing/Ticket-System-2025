@@ -100,7 +100,8 @@ private:
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::BPTStorage(
-    const std::string &file_prefix, const Key& MAX_KEY) : MAX_KEY(MAX_KEY) {
+    const std::string &file_prefix, const Key &MAX_KEY)
+    : MAX_KEY(MAX_KEY) {
   node_file.initialise(file_prefix + "_node");
   data_file.initialise(file_prefix + "_data");
   FileInit();
@@ -244,8 +245,8 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_leaf_node(
       node.children[j] = node.children[j - 1];
     }
 
+    node.keys[i + 1] = node.keys[i];
     node.keys[i] = block.data[block.key_count - 1].first;
-    node.keys[i + 1] = new_block.data[new_block.key_count - 1].first;
     node.children[i + 1] = new_block.block_id;
     node.key_count++;
 
@@ -419,7 +420,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
-  std::cout << "Split Node" << std::endl; // debug
+  // std::cout << "Split Node" << std::endl; // debug
   NodeType node;
   node_file.read(node, index);
   if (node.is_root) {
@@ -497,7 +498,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_internal_node(
     int index, Key key, int child_index, int pos) {
-  std::cout << "Insert into Internal Node" << std::endl; // debug
+  // std::cout << "Insert into Internal Node" << std::endl; // debug
   NodeType node;
   node_file.read(node, index);
 
@@ -570,7 +571,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::FileInit() {
     }
     BlockType init_block;
     init_block.block_id = data_file.write(init_block);
-    
+
     root_node.keys[0] = MAX_KEY;
     root_node.children[0] = init_block.block_id;
     data_file.update(init_block, init_block.block_id);
