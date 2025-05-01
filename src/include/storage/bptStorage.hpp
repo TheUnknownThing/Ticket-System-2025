@@ -280,12 +280,35 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
   }
   BlockType block;
   bool deleted = false, need_merge = false;
-  while (key <= node.keys[i] && i < node.key_count) { // NEED REFACTOR
-    data_file.read(block, node.children[i]);
-    std::tie(deleted, need_merge) = block.delete_key(key, value);
-    if (deleted)
-      break;
-    i++;
+  // while (key <= node.keys[i] && i < node.key_count) { // NEED REFACTOR
+  //   data_file.read(block, node.children[i]);
+  //   std::tie(deleted, need_merge) = block.delete_key(key, value);
+  //   if (deleted)
+  //     break;
+  //   i++;
+  // }
+  data_file.read(block, node.children[i]);
+  std::tie(deleted, need_merge) = block.delete_key(key, value);
+  if (!deleted) {
+    // not found in the current block, find afterwards
+    while (block.next_block_id != -1) {
+      data_file.read(block, block.next_block_id);
+      if (block.key_count == 0) {
+        continue;
+      }
+      if (block.data[0].first > key) {
+        break;
+      }
+      std::tie(deleted, need_merge) = block.delete_key(key, value);
+      if (deleted) {
+        index = block.parent_id;
+        node_file.read(node, block.parent_id);
+        i = 0;
+        while (i < node.key_count && node.children[i] != block.block_id) {
+          i++;
+        }
+      }
+    }
   }
 
   if (deleted && need_merge && i != node.key_count - 1 && !node.is_root) {
@@ -350,7 +373,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
       }
       node.keys[0] = left.keys[left.key_count - 1];
       node.children[0] = left.children[left.key_count - 1];
-      
+
       // NEED CHECK
       if (!node.is_leaf) {
         NodeType child_node;
@@ -384,7 +407,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
         right.keys[j] = right.keys[j + 1];
         right.children[j] = right.children[j + 1];
       }
-      
+
       // NEED CHECK
       if (!node.is_leaf) {
         NodeType child_node;
