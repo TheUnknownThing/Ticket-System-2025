@@ -28,8 +28,9 @@ public:
   int key_count;
   int block_id;
   int next_block_id;
+  int parent_id;
 
-  DataBlock() : key_count(0), block_id(-1), next_block_id(-1) {}
+  DataBlock() : key_count(0), block_id(-1), next_block_id(-1), parent_id(-1) {}
 
   /*
    * @brief delete a key from the block.
@@ -111,6 +112,7 @@ public:
     }
 
     new_block.next_block_id = next_block_id;
+    new_block.parent_id = parent_id;
     // still need to set block.next_block_id in main function
     key_count = mid;
 
