@@ -115,6 +115,11 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::~BPTStorage() {
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert(Key key,
                                                            Value value) {
+  sjtu::vector<Value> find_result = find(key);
+  for (auto &elem : find_result) {
+    if (elem == value) return;
+    if (elem > value) break;
+  }
   int leaf_index = find_leaf_node(key);
   insert_into_leaf_node(leaf_index, key, value);
 }
@@ -286,8 +291,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
       // borrow elements
       Key new_key = block.borrow(next_block);
       node.keys[i] = new_key;
-      node.keys[i + 1] = next_block.data[next_block.key_count - 1]
-                             .first; // maybe we don't need to change
       node_file.update(node, node.node_id);
       data_file.update(block, block.block_id);
       data_file.update(next_block, next_block.block_id);
