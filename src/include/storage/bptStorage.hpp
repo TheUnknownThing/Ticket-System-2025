@@ -115,11 +115,6 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::~BPTStorage() {
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert(Key key,
                                                            Value value) {
-  sjtu::vector<Value> find_result = find(key);
-  for (auto &elem : find_result) {
-    if (elem == value) return;
-    if (elem > value) break;
-  }
   int leaf_index = find_leaf_node(key);
   insert_into_leaf_node(leaf_index, key, value);
 }
@@ -283,7 +278,14 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
   }
   BlockType block;
   data_file.read(block, node.children[i]);
-  auto [deleted, need_merge] = block.delete_key(key, value);
+  bool deleted = false, need_merge = false;
+  while (key <= node.keys[i]) {
+    std::tie(deleted, need_merge) = block.delete_key(key, value);
+    if (deleted)
+      break;
+    i++;
+  }
+
   if (deleted && need_merge && i != node.key_count - 1 && !node.is_root) {
     BlockType next_block;
     data_file.read(next_block, block.next_block_id);
@@ -552,7 +554,8 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
         node.children[j] = node.children[j + 1];
       }
       node.key_count--;
-      if (node.keys[node.key_count - 1] != MAX_KEY) node.keys[node.key_count - 1] = MAX_KEY;
+      if (node.keys[node.key_count - 1] != MAX_KEY)
+        node.keys[node.key_count - 1] = MAX_KEY;
       node_file.update(node, node.node_id);
     } else {
       int preserved_child = node.children[1 - pos]; // maybe have problems
@@ -574,7 +577,8 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
       node.children[j] = node.children[j + 1];
     }
     node.key_count--;
-    if (node.keys[node.key_count] == MAX_KEY) node.keys[node.key_count - 1] = MAX_KEY;
+    if (node.keys[node.key_count] == MAX_KEY)
+      node.keys[node.key_count - 1] = MAX_KEY;
     if (node.key_count <= NODE_SIZE / 3) {
       node_file.update(node, node.node_id);
       merge_nodes(index);
