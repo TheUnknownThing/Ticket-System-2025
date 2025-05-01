@@ -1,7 +1,6 @@
 #ifndef BPT_NODE_HPP
 #define BPT_NODE_HPP
 
-#include <cassert>
 #include <string>
 
 template <typename Key, size_t NODE_SIZE = 4> struct BPTNode {
@@ -38,10 +37,6 @@ public:
    * needs to be merged.
    */
   std::pair<bool, bool> delete_key(Key key, Value value) {
-    assert(key_count <= BLOCK_SIZE);
-    if (block_id == 14972) {
-      block_id = block_id;
-    }
     for (int i = 0; i < key_count; i++) {
       if (data[i].first == key && data[i].second == value) {
         for (int j = i; j < key_count - 1; j++) {
@@ -59,10 +54,6 @@ public:
    * @return true if the merge is successful, false if the merge fails.
    */
   bool merge_block(DataBlock<Key, Value, BLOCK_SIZE> &block) {
-    assert(key_count <= BLOCK_SIZE);
-    if (block_id == 14972 || block.block_id == 14972) {
-      block_id = block_id;
-    }
     if (key_count + block.key_count >= BLOCK_SIZE) {
       return false;
     }
@@ -79,10 +70,6 @@ public:
    * @brief Borrow elements from the next block
    */
   Key borrow(DataBlock<Key, Value, BLOCK_SIZE> &block) {
-    assert(key_count <= BLOCK_SIZE);
-    if (block_id == 14972 || block.block_id == 14972) {
-      block_id = block_id;
-    }
     data[key_count] = block.data[0];
     key_count++;
     block.key_count--;
@@ -99,10 +86,6 @@ public:
    */
   std::pair<bool, DataBlock<Key, Value, BLOCK_SIZE>> insert_key(Key key,
                                                                 Value value) {
-    assert(key_count <= BLOCK_SIZE);
-    if (block_id == 14972) {
-      block_id = block_id;
-    }
     int i = 0;
     while (i < key_count && data[i].first < key) {
       i++;

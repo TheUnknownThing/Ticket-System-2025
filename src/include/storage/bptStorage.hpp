@@ -277,9 +277,9 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
     return;
   }
   BlockType block;
-  data_file.read(block, node.children[i]);
   bool deleted = false, need_merge = false;
-  while (key <= node.keys[i]) {
+  while (key <= node.keys[i] && i < node.key_count) { // Could improve
+    data_file.read(block, node.children[i]);
     std::tie(deleted, need_merge) = block.delete_key(key, value);
     if (deleted)
       break;
