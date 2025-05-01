@@ -481,14 +481,15 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
     node_file.update(node, node.node_id);
   } else {
     NodeType new_node;
-    for (int i = node.key_count / 2; i < node.key_count; i++) {
-      new_node.children[i - node.key_count / 2] = node.children[i];
-      new_node.keys[i - node.key_count / 2] = node.keys[i];
-      new_node.key_count++;
+    int mid = node.key_count / 2;
+    new_node.key_count = node.key_count - mid;
+    for (int j = 0; j < new_node.key_count; j++) {
+      new_node.children[j] = node.children[j + mid];
+      new_node.keys[j] = node.keys[j + mid];
     }
     new_node.is_leaf = node.is_leaf;
     new_node.parent_id = node.parent_id;
-    node.key_count /= 2;
+    node.key_count = mid;
     new_node.node_id = node_file.write(new_node);
     node_file.update(node, node.node_id);
     node_file.update(new_node, new_node.node_id);
@@ -509,13 +510,12 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
     while (parent_node.children[j] != index && j < parent_node.key_count) {
       j++;
     }
-
+    Key original_key = parent_node.keys[j];
     parent_node.keys[j] = node.keys[node.key_count - 1];
     node_file.update(parent_node, parent_node.node_id);
 
-    insert_into_internal_node(node.parent_id,
-                              new_node.keys[new_node.key_count - 1],
-                              new_node.node_id, j + 1);
+    insert_into_internal_node(node.parent_id, original_key, new_node.node_id,
+                              j + 1);
   }
 }
 

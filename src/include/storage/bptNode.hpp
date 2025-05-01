@@ -39,6 +39,9 @@ public:
    */
   std::pair<bool, bool> delete_key(Key key, Value value) {
     assert(key_count <= BLOCK_SIZE);
+    if (block_id == 14972) {
+      block_id = block_id;
+    }
     for (int i = 0; i < key_count; i++) {
       if (data[i].first == key && data[i].second == value) {
         for (int j = i; j < key_count - 1; j++) {
@@ -57,6 +60,9 @@ public:
    */
   bool merge_block(DataBlock<Key, Value, BLOCK_SIZE> &block) {
     assert(key_count <= BLOCK_SIZE);
+    if (block_id == 14972 || block.block_id == 14972) {
+      block_id = block_id;
+    }
     if (key_count + block.key_count >= BLOCK_SIZE) {
       return false;
     }
@@ -74,10 +80,13 @@ public:
    */
   Key borrow(DataBlock<Key, Value, BLOCK_SIZE> &block) {
     assert(key_count <= BLOCK_SIZE);
+    if (block_id == 14972 || block.block_id == 14972) {
+      block_id = block_id;
+    }
     data[key_count] = block.data[0];
     key_count++;
     block.key_count--;
-    for (int j = 0; j < block.key_count - 1; j++) {
+    for (int j = 0; j < block.key_count; j++) {
       block.data[j] = block.data[j + 1];
     }
     return data[key_count - 1].first;
@@ -91,6 +100,9 @@ public:
   std::pair<bool, DataBlock<Key, Value, BLOCK_SIZE>> insert_key(Key key,
                                                                 Value value) {
     assert(key_count <= BLOCK_SIZE);
+    if (block_id == 14972) {
+      block_id = block_id;
+    }
     int i = 0;
     while (i < key_count && data[i].first < key) {
       i++;
