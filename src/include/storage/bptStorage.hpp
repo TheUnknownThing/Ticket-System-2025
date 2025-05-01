@@ -294,10 +294,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
     // not found in the current block, find afterwards
     while (block.next_block_id != -1) {
       data_file.read(block, block.next_block_id);
-      if (block.key_count == 0) {
-        continue;
-      }
-      if (block.data[0].first > key) {
+      if (block.key_count == 0 || block.data[0].first > key) {
         break;
       }
       std::tie(deleted, need_merge) = block.delete_key(key, value);
@@ -399,7 +396,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
       return;
     }
   }
-  if (j != parent_node.key_count) {
+  if (j <= parent_node.key_count - 2) {
     node_file.read(right, parent_node.children[j + 1]);
     if (right.key_count >= NODE_SIZE / 2) {
       // adopt from right
@@ -456,8 +453,9 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
     node_file.remove(node.node_id);
 
     delete_from_internal_node(parent_node.node_id, j);
+    return;
   }
-  if (j != parent_node.key_count) {
+  if (j <= parent_node.key_count - 2) {
     // merge right
     for (int j = 0; j < right.key_count; j++) {
       node.keys[j + node.key_count] = right.keys[j];
@@ -484,6 +482,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
     node_file.remove(right.node_id);
 
     delete_from_internal_node(parent_node.node_id, j);
+    return;
   }
 }
 
