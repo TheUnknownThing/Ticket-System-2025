@@ -2,6 +2,10 @@
 #include "stl/string64.hpp"
 #include <iostream>
 
+constexpr bool DEBUG_MODE = false;
+
+#define DEBUG_PRINT(x) if (DEBUG_MODE) { std::cout << x << std::endl; }
+
 signed main() {
   std::ios::sync_with_stdio(false);
   std::cin.tie(nullptr);
@@ -23,19 +27,19 @@ signed main() {
       std::cin >> index;
       int value;
       std::cin >> value;
-      // std::cout << "Doing insert: " << index << " " << value << std::endl; // debug
+      DEBUG_PRINT("Doing insert: " << index << " " << value);
       book.insert(index, value);
     } else if (op == "delete") {
       sjtu::string64 index;
       std::cin >> index;
       int value;
       std::cin >> value;
-      // std::cout << "Doing delete: " << index << " " << value << std::endl; // debug
+      DEBUG_PRINT("Doing delete: " << index << " " << value);
       book.remove(index, value);
     } else if (op == "find") {
       sjtu::string64 index;
       std::cin >> index;
-      // std::cout << "Doing find: " << index << std::endl; // debug
+      DEBUG_PRINT("Doing find: " << index);
       auto result = book.find(index);
       for (const auto &val : result) {
         std::cout << val << " ";
