@@ -285,6 +285,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
   //   std::tie(deleted, need_merge) = block.delete_key(key, value);
   //   if (deleted)
   //     break;
+  //   // std::cout << block.next_block_id << " " << node.children[i + 1] << std::endl;
   //   i++;
   // }
   data_file.read(block, node.children[i]);
@@ -307,6 +308,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
         while (i < node.key_count && node.children[i] != block.block_id) {
           i++;
         }
+        break;
       }
     }
   }
