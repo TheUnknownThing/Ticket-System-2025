@@ -1,6 +1,8 @@
 #!/bin/bash
-cp ../../build/code .
-
+cd ../..
+cmake . && make
+cp code test/storage/.
+cd test/storage
 preserve_data=false
 
 for arg in "$@"; do

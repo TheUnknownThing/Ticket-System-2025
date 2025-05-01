@@ -124,6 +124,15 @@ public:
     return result;
   }
 
+  string64 STRING64_MAX() const {
+    string64 max_str;
+    for (size_t i = 0; i < 64; ++i) {
+      max_str.s[i] = 126;
+    }
+    max_str.s[64] = '\0';
+    return max_str;
+  }
+
   friend std::istream &operator>>(std::istream &is, string64 &str) {
     is >> str.s;
     return is;

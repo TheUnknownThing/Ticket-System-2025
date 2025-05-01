@@ -15,7 +15,7 @@ public:
   using NodeType = BPTNode<Key, NODE_SIZE>;
   using BlockType = DataBlock<Key, Value, BLOCK_SIZE>;
 
-  BPTStorage(const std::string &file_prefix);
+  BPTStorage(const std::string &file_prefix, const Key &MAX_KEY);
   ~BPTStorage();
 
   /*
@@ -40,6 +40,7 @@ private:
 
   std::string node_file_name;
   std::string data_file_name;
+  Key MAX_KEY;
 
   int root_index;
 
@@ -99,7 +100,7 @@ private:
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::BPTStorage(
-    const std::string &file_prefix) {
+    const std::string &file_prefix, const Key& MAX_KEY) : MAX_KEY(MAX_KEY) {
   node_file.initialise(file_prefix + "_node");
   data_file.initialise(file_prefix + "_data");
   FileInit();
@@ -563,10 +564,16 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::FileInit() {
     root_node.parent_id = -1;
     root_node.is_leaf = true;
     root_node.is_root = true;
-    root_node.key_count = 0;
-    for (int i = 0; i < NODE_SIZE + 1; i++) {
+    root_node.key_count = 1;
+    for (int i = 0; i <= NODE_SIZE; i++) {
       root_node.children[i] = -1;
     }
+    BlockType init_block;
+    init_block.block_id = data_file.write(init_block);
+    
+    root_node.keys[0] = MAX_KEY;
+    root_node.children[0] = init_block.block_id;
+    data_file.update(init_block, init_block.block_id);
 
     root_index = node_file.write(root_node);
     root_node.node_id = root_index;

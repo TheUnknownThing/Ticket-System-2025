@@ -10,7 +10,10 @@ signed main() {
   std::cin >> n;
   std::string op;
 
-  BPTStorage<sjtu::string64, int, 57, 57> book("data"); // for debugging, normal: (57, 57)
+  sjtu::string64 MAXN;
+  MAXN = MAXN.STRING64_MAX();
+
+  BPTStorage<sjtu::string64, int, 6, 6> book("data", MAXN); // for debugging, normal: (57, 57)
 
   for (int i = 0; i < n; ++i) {
     std::cin >> op;
@@ -20,16 +23,19 @@ signed main() {
       std::cin >> index;
       int value;
       std::cin >> value;
+      std::cout << "Doing insert: " << index << " " << value << std::endl; // debug
       book.insert(index, value);
     } else if (op == "delete") {
       sjtu::string64 index;
       std::cin >> index;
       int value;
       std::cin >> value;
+      std::cout << "Doing delete: " << index << " " << value << std::endl; // debug
       book.remove(index, value);
     } else if (op == "find") {
       sjtu::string64 index;
       std::cin >> index;
+      std::cout << "Doing find: " << index << std::endl; // debug
       auto result = book.find(index);
       for (const auto &val : result) {
         std::cout << val << " ";
@@ -37,7 +43,7 @@ signed main() {
       if (result.empty()) {
         std::cout << "null";
       }
-      std::cout << "\n";
+      std::cout << std::endl;
     }
   }
   return 0;
