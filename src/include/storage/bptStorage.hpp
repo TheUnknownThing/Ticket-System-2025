@@ -139,7 +139,7 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find(Key key) {
     i++;
   }
 
-  if (i < leaf_node.key_count && leaf_node.children[i] != -1) {
+  if (i < leaf_node.key_count) {
     BlockType block;
     data_file.read(block, leaf_node.children[i]);
 
@@ -214,7 +214,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_leaf_node(
     block.parent_id = index;
     block.key_count = 0;
     node.children[i] = block.block_id;
-    node.keys[i] = (node.keys[i] == MAX_KEY ? MAX_KEY : key);
+    node.keys[i] = key;
     node.key_count++;
     if (i > 0) {
       BlockType prev_block;
@@ -280,14 +280,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
   }
   BlockType block;
   bool deleted = false, need_merge = false;
-  // while (key <= node.keys[i] && i < node.key_count) { // NEED REFACTOR
-  //   data_file.read(block, node.children[i]);
-  //   std::tie(deleted, need_merge) = block.delete_key(key, value);
-  //   if (deleted)
-  //     break;
-  //   // std::cout << block.next_block_id << " " << node.children[i + 1] << std::endl;
-  //   i++;
-  // }
   data_file.read(block, node.children[i]);
   std::tie(deleted, need_merge) = block.delete_key(key, value);
   if (!deleted) {
@@ -528,7 +520,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
         node_file.update(child_node, child_1.children[j]);
       }
     } else {
-      // NEED TO IMPLEMENT DATA BLOCK's PARENT
       for (int j = 0; j < child_1.key_count; j++) {
         BlockType child_block;
         data_file.read(child_block, child_1.children[j]);
@@ -545,7 +536,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
         node_file.update(child_node, child_2.children[j]);
       }
     } else {
-      // NEED TO IMPLEMENT DATA BLOCK's PARENT
       for (int j = 0; j < child_2.key_count; j++) {
         BlockType child_block;
         data_file.read(child_block, child_2.children[j]);
@@ -580,7 +570,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
         node_file.update(child, child.node_id);
       }
     } else {
-      // NEED TO IMPLEMENT DATA BLOCK's PARENT
       for (int i = 0; i < new_node.key_count; i++) {
         BlockType child;
         data_file.read(child, new_node.children[i]);
