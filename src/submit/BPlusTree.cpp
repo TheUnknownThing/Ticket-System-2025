@@ -17,7 +17,7 @@ signed main() {
   sjtu::string64 MAXN;
   MAXN = MAXN.STRING64_MAX();
 
-  BPTStorage<sjtu::string64, int, 25, 20> book("data", MAXN); // for debugging, normal: (57, 55)
+  BPTStorage<sjtu::string64, int, 56, 54> book("data", MAXN); // for debugging, normal: (57, 55)
 
   for (int i = 0; i < n; ++i) {
     std::cin >> op;

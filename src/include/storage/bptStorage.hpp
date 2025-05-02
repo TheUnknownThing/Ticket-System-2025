@@ -160,11 +160,15 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find(Key key) {
       if (block.data[0].first > key) {
         break;
       }
-      for (int j = 0; j < block.key_count; j++) {
-        if (block.data[j].first == key) {
-          result.push_back(block.data[j].second);
-        } else if (block.data[j].first > key) {
-          break;
+      if (block.data[block.key_count - 1].first < key) {
+        continue;
+      } else {
+        for (int j = 0; j < block.key_count; j++) {
+          if (block.data[j].first == key) {
+            result.push_back(block.data[j].second);
+          } else if (block.data[j].first > key) {
+            break;
+          }
         }
       }
     }
