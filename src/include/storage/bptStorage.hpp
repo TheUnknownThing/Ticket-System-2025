@@ -184,7 +184,7 @@ int BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find_leaf_node(Key key) {
 
   while (!current_node.is_leaf) {
     int child_index = 0;
-    while (child_index < current_node.key_count &&
+    while (child_index < current_node.key_count - 1 &&
            key > current_node.keys[child_index]) {
       child_index++;
     }
@@ -362,9 +362,9 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
     node_file.read(left, parent_node.children[j - 1]);
     if (left.key_count >= NODE_SIZE / 2) {
       // adopt from left
-      for (int j = node.key_count; j > 0; j--) {
-        node.keys[j] = node.keys[j - 1];
-        node.children[j] = node.children[j - 1];
+      for (int k = node.key_count; k > 0; k--) {
+        node.keys[k] = node.keys[k - 1];
+        node.children[k] = node.children[k - 1];
       }
       node.keys[0] = left.keys[left.key_count - 1];
       node.children[0] = left.children[left.key_count - 1];
@@ -397,9 +397,9 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
       // adopt from right
       node.keys[node.key_count] = right.keys[0];
       node.children[node.key_count] = right.children[0];
-      for (int j = 0; j < right.key_count; j++) {
-        right.keys[j] = right.keys[j + 1];
-        right.children[j] = right.children[j + 1];
+      for (int k = 0; k < right.key_count; k++) {
+        right.keys[k] = right.keys[k + 1];
+        right.children[k] = right.children[k + 1];
       }
 
       if (!node.is_leaf) {
@@ -426,17 +426,17 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
   }
   if (j != 0) {
     // merge left
-    for (int j = 0; j < node.key_count; j++) {
-      left.keys[j + left.key_count] = node.keys[j];
-      left.children[j + left.key_count] = node.children[j];
+    for (int k = 0; k < node.key_count; k++) {
+      left.keys[k + left.key_count] = node.keys[k];
+      left.children[k + left.key_count] = node.children[k];
       if (!node.is_leaf) {
         NodeType child;
-        node_file.read(child, node.children[j]);
+        node_file.read(child, node.children[k]);
         child.parent_id = left.node_id;
         node_file.update(child, child.node_id);
       } else {
         BlockType child_block;
-        data_file.read(child_block, node.children[j]);
+        data_file.read(child_block, node.children[k]);
         child_block.parent_id = left.node_id;
         data_file.update(child_block, child_block.block_id);
       }
@@ -451,17 +451,17 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
   }
   if (j <= parent_node.key_count - 2) {
     // merge right
-    for (int j = 0; j < right.key_count; j++) {
-      node.keys[j + node.key_count] = right.keys[j];
-      node.children[j + node.key_count] = right.children[j];
+    for (int k = 0; k < right.key_count; k++) {
+      node.keys[k + node.key_count] = right.keys[k];
+      node.children[k + node.key_count] = right.children[k];
       if (!right.is_leaf) {
         NodeType child;
-        node_file.read(child, right.children[j]);
+        node_file.read(child, right.children[k]);
         child.parent_id = node.node_id;
         node_file.update(child, child.node_id);
       } else {
         BlockType child_block;
-        data_file.read(child_block, right.children[j]);
+        data_file.read(child_block, right.children[k]);
         child_block.parent_id = node.node_id;
         data_file.update(child_block, child_block.block_id);
       }
