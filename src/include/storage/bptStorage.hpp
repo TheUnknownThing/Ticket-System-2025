@@ -2,7 +2,7 @@
 #define BPT_STORAGE_HPP
 
 #include "bptNode.hpp"
-#include "fileOperation.hpp"
+#include "cachedFileOperation.hpp"
 #include "stl/vector.hpp"
 #include <functional>
 #include <iostream>
@@ -35,8 +35,8 @@ public:
   sjtu::vector<Value> find(Key key);
 
 private:
-  FileOperation<NodeType> node_file;
-  FileOperation<BlockType> data_file;
+  CachedFileOperation<NodeType> node_file;
+  CachedFileOperation<BlockType> data_file;
 
   std::string node_file_name;
   std::string data_file_name;
@@ -365,7 +365,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
       node.keys[0] = left.keys[left.key_count - 1];
       node.children[0] = left.children[left.key_count - 1];
 
-      // NEED CHECK
       if (!node.is_leaf) {
         NodeType child_node;
         node_file.read(child_node, node.children[0]);
@@ -609,11 +608,10 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_internal_node(
   node.children[pos] = child_index;
   node.key_count++;
 
+  node_file.update(node, node.node_id);
+
   if (node.key_count >= NODE_SIZE) {
-    node_file.update(node, node.node_id);
     split_node(index);
-  } else {
-    node_file.update(node, node.node_id);
   }
 }
 
@@ -632,7 +630,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
       if (node.keys[node.key_count - 1] != MAX_KEY)
         node.keys[node.key_count - 1] = MAX_KEY;
       node_file.update(node, node.node_id);
-    } else {
+    } else if (node.key_count == 2) {
       int preserved_child = node.children[1 - pos]; // maybe have problems?
       NodeType child_node;
       node_file.read(child_node, preserved_child);
@@ -645,6 +643,8 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
       node_file.update(child_node, child_node.node_id);
 
       node_file.write_info(root_index, 1);
+    } else {
+      int a = 1; // do something
     }
   } else {
     for (int j = pos; j < node.key_count - 1; j++) {
