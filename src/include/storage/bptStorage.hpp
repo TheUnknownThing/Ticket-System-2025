@@ -155,7 +155,9 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find(Key key) {
     // Check linked blocks
     while (block.next_block_id != -1) {
       data_file.read(block, block.next_block_id);
-      if (block.key_count == 0 || block.data[0].first > key) {
+      if (block.key_count == 0)
+        continue;
+      if (block.data[0].first > key) {
         break;
       }
       for (int j = 0; j < block.key_count; j++) {
