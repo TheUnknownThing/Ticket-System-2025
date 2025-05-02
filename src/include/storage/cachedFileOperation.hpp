@@ -2,40 +2,38 @@
 #define CACHED_FILE_OPERATION_HPP
 
 #include "cache/LRUKCache.hpp"
-#include "fileOperation.hpp"
+#include "cache/fileOperation.hpp"
+#include <string>
 
-template <class T, int info_len = 2,
-          std::size_t K = 4,        // LRU‑K parameter
-          std::size_t CACHE = 8192> // max pages in RAM
+template <class T, int info_len = 2, std::size_t K = 4,
+          std::size_t CACHE = 8192>
 class CachedFileOperation {
-  using Key = int; // file offset == index
+  using Key = int;
 
   FileOperation<T, info_len> disk;
   LRUKCache<Key, T, K, CACHE> cache;
 
-  void write_back(const Key &idx, const T &obj) {
+  static void write_back(const Key &idx, const T &obj, void *context) {
+    auto *self = static_cast<CachedFileOperation *>(context);
     T copy = obj;
-    disk.update(copy, idx);
+    self->disk.update(copy, idx);
   }
 
 public:
-  CachedFileOperation()
-      : disk(), cache([this](const Key &k, const T &v) { write_back(k, v); }) {}
+  CachedFileOperation() : disk(), cache(write_back, this) {}
 
   explicit CachedFileOperation(const std::string &fn)
-      : disk(fn),
-        cache([this](const Key &k, const T &v) { write_back(k, v); }) {}
+      : disk(fn), cache(write_back, this) {}
 
   ~CachedFileOperation() { cache.flush(); }
 
   void initialise(std::string fn = "") { disk.initialise(fn); }
-
   void get_info(int &tmp, int n) { disk.get_info(tmp, n); }
   void write_info(int tmp, int n) { disk.write_info(tmp, n); }
   bool isEmpty() { return disk.isEmpty(); }
 
   int write(T &t) {
-    int idx = disk.write(t);  // page already on disk
+    int idx = disk.write(t);
     cache.put(idx, t, false);
     return idx;
   }
@@ -47,12 +45,10 @@ public:
     }
   }
 
-  void update(T &t, const int idx) {
-    cache.put(idx, t, true); // defer write‑back
-  }
+  void update(T &t, const int idx) { cache.put(idx, t, true); }
 
   void remove(int idx) {
-    cache.flush();    // safest: flush first
+    cache.flush();
     disk.remove(idx);
   }
 

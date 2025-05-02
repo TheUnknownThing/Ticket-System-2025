@@ -2,9 +2,8 @@
 #define BPT_STORAGE_HPP
 
 #include "bptNode.hpp"
-#include "fileOperation.hpp"
 #include "stl/vector.hpp"
-#include "storage/cachedFileOperation.hpp"
+#include "cachedFileOperation.hpp"
 #include <functional>
 
 template <typename Key, typename Value, size_t NODE_SIZE = 4,
@@ -34,8 +33,8 @@ public:
   sjtu::vector<Value> find(Key key);
 
 private:
-  CachedFileOperation<NodeType, 2, 100, 32768> node_file;
-  CachedFileOperation<BlockType, 2, 100, 32768> data_file;
+  CachedFileOperation<NodeType, 2, 4, 8192> node_file;
+  CachedFileOperation<BlockType, 2, 4, 8192> data_file;
 
   std::string node_file_name;
   std::string data_file_name;

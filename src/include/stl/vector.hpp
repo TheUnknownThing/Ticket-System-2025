@@ -7,27 +7,7 @@
 #include <cstddef>
 #include <cstring>
 #include <iostream>
-
-class invalid_iterator : public std::exception {
-   public:
-    const char *what() const noexcept override {
-        return "invalid iterator";
-    }
-};
-
-class container_is_empty : public std::exception {
-   public:
-    const char *what() const noexcept override {
-        return "container is empty";
-    }
-};
-
-class index_out_of_bound : public std::exception {
-   public:
-    const char *what() const noexcept override {
-        return "index out of bound";
-    }
-};
+#include "utils/exceptions.hpp"
 
 namespace sjtu {
 /**

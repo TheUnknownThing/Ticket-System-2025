@@ -3,16 +3,7 @@
 
 #include <cstddef>
 #include <functional>
-
-class container_is_empty : public std::exception {
-public:
-  const char *what() const noexcept override { return "container is empty"; }
-};
-
-class runtime_error : public std::exception {
-public:
-  const char *what() const noexcept override { return "runtime error"; }
-};
+#include "utils/exceptions.hpp"
 
 namespace sjtu {
 /**
