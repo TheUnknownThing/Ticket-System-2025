@@ -13,18 +13,12 @@ class CachedFileOperation {
   FileOperation<T, info_len> disk;
   LRUKCache<Key, T, K, CACHE> cache;
 
-  /*---------------------------------------------------------
-   * write‑back functor for the cache
-   *-------------------------------------------------------*/
   void write_back(const Key &idx, const T &obj) {
     T copy = obj;
     disk.update(copy, idx);
   }
 
 public:
-  /*---------------------------------------------------------
-   * ctors / dtor
-   *-------------------------------------------------------*/
   CachedFileOperation()
       : disk(), cache([this](const Key &k, const T &v) { write_back(k, v); }) {}
 
@@ -34,42 +28,34 @@ public:
 
   ~CachedFileOperation() { cache.flush(); }
 
-  /*---------------------------------------------------------
-   * identical public interface – thin forwarding wrappers
-   *-------------------------------------------------------*/
   void initialise(std::string fn = "") { disk.initialise(fn); }
 
   void get_info(int &tmp, int n) { disk.get_info(tmp, n); }
   void write_info(int tmp, int n) { disk.write_info(tmp, n); }
   bool isEmpty() { return disk.isEmpty(); }
 
-  /*---------------------------------------------------------
-   * Data read / write with cache support
-   *-------------------------------------------------------*/
   int write(T &t) {
     int idx = disk.write(t);  // page already on disk
-    cache.put(idx, t, false); // clean page in cache
+    cache.put(idx, t, false);
     return idx;
   }
 
   void read(T &t, const int idx) {
-    if (!cache.get(idx, t)) { // miss → load from disk
+    if (!cache.get(idx, t)) {
       disk.read(t, idx);
-      cache.put(idx, t, false); // now cached
+      cache.put(idx, t, false);
     }
   }
 
   void update(T &t, const int idx) {
     cache.put(idx, t, true); // defer write‑back
-    /* no direct disk access here – handled by cache */
   }
 
   void remove(int idx) {
     cache.flush();    // safest: flush first
-    disk.remove(idx); // (does nothing today)
+    disk.remove(idx);
   }
 
-  /* explicit flush for callers that want deterministic I/O */
   void flush() { cache.flush(); }
 };
 

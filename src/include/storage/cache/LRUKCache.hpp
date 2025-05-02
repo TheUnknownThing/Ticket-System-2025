@@ -1,11 +1,11 @@
 #ifndef LRUK_CACHE_HPP
 #define LRUK_CACHE_HPP
 
-#include <cassert>
 #include <deque>
 #include <functional>
 #include <limits>
 #include <unordered_map>
+#include <cassert>
 
 template <class Key, class Value,
           std::size_t K = 4,
@@ -57,12 +57,8 @@ public:
   explicit LRUKCache(std::function<void(const Key &, const Value &)> wb)
       : writer(std::move(wb)) {}
 
-  /*------------------------------------------------------------------*/
-  /* public interface                                                 */
-  /*------------------------------------------------------------------*/
   bool contains(const Key &k) const { return map.count(k); }
 
-  /* get()     – read‑only access; returns false if key not present  */
   bool get(const Key &k, Value &out) {
     auto it = map.find(k);
     if (it == map.end())
@@ -72,8 +68,6 @@ public:
     return true;
   }
 
-  /* insert/update value; 'dirty' tells whether a later write‑back   */
-  /* is necessary                                                    */
   void put(const Key &k, const Value &v, bool dirty) {
     Entry &e = map[k];
     e.val = v;
@@ -84,19 +78,16 @@ public:
       evict();
   }
 
-  /* mark page as dirty without changing its payload */
   void mark_dirty(const Key &k) {
     auto it = map.find(k);
     if (it != map.end())
       it->second.dirty = true;
   }
 
-  /* write every dirty page to backing store                          */
   void flush() {
     for (auto &pr : map)
       if (pr.second.dirty && writer)
         writer(pr.first, pr.second.val);
-    // mark clean after flush
     for (auto &pr : map)
       pr.second.dirty = false;
   }
