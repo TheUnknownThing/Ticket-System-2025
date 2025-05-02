@@ -14,8 +14,8 @@
 // !!! IMPORTANT: Set these to match your BPTStorage template parameters !!!
 using KeyType = sjtu::string64;
 using ValueType = int;
-const size_t NODE_SIZE_CONF = 7;
-const size_t BLOCK_SIZE_CONF = 57;
+const size_t NODE_SIZE_CONF = 6;
+const size_t BLOCK_SIZE_CONF = 6;
 // --- End Configuration ---
 
 // Define the specific types based on configuration
@@ -56,7 +56,7 @@ void print_tree_recursive(
 
   std::cout << indent << (node.is_leaf ? "[LEAF NODE]" : "[INTERNAL NODE]")
             << " ID: " << node.node_id << ", Parent: " << node.parent_id
-            << ", Next: " << node.next_node_id << ", KCount: " << node.key_count
+            << ", KCount: " << node.key_count
             << (node.is_root ? " (ROOT)" : "") << std::endl;
 
   std::cout << indent << "  ";

@@ -17,7 +17,7 @@ signed main() {
   sjtu::string64 MAXN;
   MAXN = MAXN.STRING64_MAX();
 
-  BPTStorage<sjtu::string64, int, 57, 55> book("data", MAXN); // for debugging, normal: (57, 55)
+  BPTStorage<sjtu::string64, int, 6, 6> book("data", MAXN); // for debugging, normal: (57, 55)
 
   for (int i = 0; i < n; ++i) {
     std::cin >> op;
@@ -27,6 +27,10 @@ signed main() {
       std::cin >> index;
       int value;
       std::cin >> value;
+      if (index == sjtu::string64("14") && value == 262296433) {
+        // debug
+        int a = 1;
+      }
       DEBUG_PRINT("Doing insert: " << index << " " << value);
       book.insert(index, value);
     } else if (op == "delete") {
