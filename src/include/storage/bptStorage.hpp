@@ -139,7 +139,7 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find(Key key) {
     i++;
   }
 
-  if (i < leaf_node.key_count && leaf_node.children[i] != -1) {
+  if (i < leaf_node.key_count) {
     BlockType block;
     data_file.read(block, leaf_node.children[i]);
 
@@ -155,7 +155,8 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find(Key key) {
     // Check linked blocks
     while (block.next_block_id != -1) {
       data_file.read(block, block.next_block_id);
-      if (block.key_count == 0 || block.data[0].first > key) {
+      if (block.key_count == 0) continue;
+      if (block.data[0].first > key) {
         break;
       }
       for (int j = 0; j < block.key_count; j++) {
@@ -214,7 +215,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_leaf_node(
     block.parent_id = index;
     block.key_count = 0;
     node.children[i] = block.block_id;
-    node.keys[i] = (node.keys[i] == MAX_KEY ? MAX_KEY : key);
+    node.keys[i] = key;
     node.key_count++;
     if (i > 0) {
       BlockType prev_block;
@@ -286,7 +287,8 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
     // not found in the current block, find afterwards
     while (block.next_block_id != -1) {
       data_file.read(block, block.next_block_id);
-      if (block.key_count == 0 || block.data[0].first > key) {
+      if (block.key_count == 0) continue;
+      if (block.data[0].first > key) {
         break;
       }
       std::tie(deleted, need_merge) = block.delete_key(key, value);
