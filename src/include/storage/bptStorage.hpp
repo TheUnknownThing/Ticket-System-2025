@@ -285,7 +285,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
   if (!deleted) {
     // not found in the current block, find afterwards
     while (block.next_block_id != -1) {
-      data_file.read(block, block.next_block_id);\
+      data_file.read(block, block.next_block_id);
       if (block.key_count == 0 || block.data[0].first > key) {
         break;
       }
@@ -332,10 +332,8 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
       }
     }
   } else if (deleted) {
-    node.keys[i] = (node.keys[i] == MAX_KEY ? MAX_KEY : block.data[block.key_count - 1].first);
     // write the block back
     data_file.update(block, block.block_id);
-    node_file.update(node, node.node_id);
   }
 }
 
