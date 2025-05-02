@@ -155,7 +155,7 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find(Key key) {
     // Check linked blocks
     while (block.next_block_id != -1) {
       data_file.read(block, block.next_block_id);
-      if (block.key_count == 0 || block.data[0].first > key) {
+      if (block.data[0].first > key) {
         break;
       }
       for (int j = 0; j < block.key_count; j++) {
@@ -286,7 +286,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
     // not found in the current block, find afterwards
     while (block.next_block_id != -1) {
       data_file.read(block, block.next_block_id);
-      if (block.key_count == 0 || block.data[0].first > key) {
+      if (block.data[0].first > key) {
         break;
       }
       std::tie(deleted, need_merge) = block.delete_key(key, value);
@@ -331,9 +331,11 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
         node_file.update(node, node.node_id);
       }
     }
-  } else {
+  } else if (deleted) {
+    node.keys[i] = (node.keys[i] == MAX_KEY ? MAX_KEY : block.data[block.key_count - 1].first);
     // write the block back
     data_file.update(block, block.block_id);
+    node_file.update(node, node.node_id);
   }
 }
 
@@ -398,7 +400,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
         right.children[j] = right.children[j + 1];
       }
 
-      // NEED CHECK
       if (!node.is_leaf) {
         NodeType child_node;
         node_file.read(child_node, node.children[node.key_count]);
@@ -643,8 +644,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
       node_file.update(child_node, child_node.node_id);
 
       node_file.write_info(root_index, 1);
-    } else {
-      int a = 1; // do something
     }
   } else {
     for (int j = pos; j < node.key_count - 1; j++) {
