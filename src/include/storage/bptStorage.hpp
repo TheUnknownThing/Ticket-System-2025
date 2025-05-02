@@ -443,6 +443,8 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
     }
 
     left.key_count += node.key_count;
+    parent_node.keys[j - 1] = parent_node.keys[j];
+    node_file.update(parent_node, parent_node.node_id);
     node_file.update(left, left.node_id);
     node_file.remove(node.node_id);
 
