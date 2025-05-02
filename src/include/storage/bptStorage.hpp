@@ -155,7 +155,7 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find(Key key) {
     // Check linked blocks
     while (block.next_block_id != -1) {
       data_file.read(block, block.next_block_id);
-      if (block.key_count == 0) break;
+      if (block.key_count == 0) continue;
       if (block.data[0].first > key) {
         break;
       }
@@ -287,7 +287,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
     // not found in the current block, find afterwards
     while (block.next_block_id != -1) {
       data_file.read(block, block.next_block_id);
-      if (block.key_count == 0) break;
+      if (block.key_count == 0) continue;
       if (block.data[0].first > key) {
         break;
       }
