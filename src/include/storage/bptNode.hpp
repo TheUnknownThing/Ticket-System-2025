@@ -97,7 +97,7 @@ public:
     data[i] = std::make_pair(key, value);
     key_count++;
 
-    if (key_count <= BLOCK_SIZE) {
+    if (key_count < BLOCK_SIZE) {
       // no need to split
       return {false, *this};
     }
