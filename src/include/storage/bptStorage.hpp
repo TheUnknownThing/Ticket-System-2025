@@ -2,7 +2,7 @@
 #define BPT_STORAGE_HPP
 
 #include "bptNode.hpp"
-#include "cachedFileOperation.hpp"
+#include "fileOperation.hpp"
 #include "stl/vector.hpp"
 #include <functional>
 #include <iostream>
@@ -35,8 +35,8 @@ public:
   sjtu::vector<Value> find(Key key);
 
 private:
-  CachedFileOperation<NodeType> node_file;
-  CachedFileOperation<BlockType> data_file;
+  FileOperation<NodeType> node_file;
+  FileOperation<BlockType> data_file;
 
   std::string node_file_name;
   std::string data_file_name;

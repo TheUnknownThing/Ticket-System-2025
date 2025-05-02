@@ -8,8 +8,8 @@
 #include <unordered_map>
 
 template <class Key, class Value,
-          std::size_t K = 3,
-          std::size_t MaxResidency = 1024>
+          std::size_t K = 4,
+          std::size_t MaxResidency = 8192>
 class LRUKCache {
   static_assert(K >= 1, "K must be at least 1");
 

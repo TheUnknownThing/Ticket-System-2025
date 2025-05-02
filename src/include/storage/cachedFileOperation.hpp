@@ -2,11 +2,11 @@
 #define CACHED_FILE_OPERATION_HPP
 
 #include "cache/LRUKCache.hpp"
-#include "cache/fileOperation.hpp"
+#include "fileOperation.hpp"
 
 template <class T, int info_len = 2,
-          std::size_t K = 3,        // LRU‑K parameter
-          std::size_t CACHE = 1024> // max pages in RAM
+          std::size_t K = 4,        // LRU‑K parameter
+          std::size_t CACHE = 8192> // max pages in RAM
 class CachedFileOperation {
   using Key = int; // file offset == index
 
