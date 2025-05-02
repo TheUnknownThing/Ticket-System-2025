@@ -298,6 +298,9 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
       if (block.data[0].first > key) {
         break;
       }
+      if (block.data[block.key_count - 1] < key) {
+        continue;
+      }
       std::tie(deleted, need_merge) = block.delete_key(key, value);
       if (deleted) {
         index = block.parent_id;
