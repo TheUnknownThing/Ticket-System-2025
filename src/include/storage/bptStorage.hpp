@@ -240,7 +240,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_leaf_node(
   auto [need_split, new_block] = block.insert_key(key, value);
 
   if (need_split) {
-    // std::cout << "Split New Block" << std::endl; // debug
     // Write new block
     new_block.block_id = data_file.write(new_block);
     new_block.parent_id = index;
@@ -258,12 +257,10 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_leaf_node(
     node.keys[i] = block.data[block.key_count - 1].first;
     node.children[i + 1] = new_block.block_id;
     node.key_count++;
+    node_file.update(node, node.node_id);
 
     if (node.key_count >= NODE_SIZE) {
-      node_file.update(node, node.node_id);
       split_node(index);
-    } else {
-      node_file.update(node, node.node_id);
     }
   } else {
     node_file.update(node, node.node_id);
@@ -351,7 +348,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
-  // std::cout << "Merge Nodes" << std::endl; // debug
   NodeType node;
   node_file.read(node, index);
   if (node.parent_id == -1) {
@@ -492,7 +488,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
 
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
-  // std::cout << "Split Node" << std::endl; // debug
   NodeType node;
   node_file.read(node, index);
   if (node.is_root) {
@@ -609,7 +604,6 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::split_node(int index) {
 template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_internal_node(
     int index, Key key, int child_index, int pos) {
-  // std::cout << "Insert into Internal Node" << std::endl; // debug
   NodeType node;
   node_file.read(node, index);
 
@@ -644,7 +638,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
         node.keys[node.key_count - 1] = MAX_KEY;
       node_file.update(node, node.node_id);
     } else if (node.key_count == 2) {
-      int preserved_child = node.children[1 - pos]; // maybe have problems?
+      int preserved_child = node.children[1 - pos];
       NodeType child_node;
       node_file.read(child_node, preserved_child);
       child_node.is_root = true;
