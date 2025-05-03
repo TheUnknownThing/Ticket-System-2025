@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <cstdio> // Required for std::remove
 
 // Helper function to execute commands from input file
 void executeCommands(BPTStorage<int, int>& storage, const std::string& inputFile, const std::string& outputFile) {
@@ -39,37 +40,57 @@ void executeCommands(BPTStorage<int, int>& storage, const std::string& inputFile
 
 // Test case for 1.in and 1.out
 TEST(StorageTest, TestCase1) {
-    BPTStorage<int, int> storage("test1.db");
-    executeCommands(storage, "test/storage/1.in", "test/storage/1.out");
-    std::remove("test1.db");
+    // Ensure clean state before test
+    std::remove("test1.db_data");
+    std::remove("test1.db_node");
+    BPTStorage<int, int> storage("test1.db", INT_MAX);
+    executeCommands(storage, "../../test/storage/simple/1.in", "../../test/storage/simple/1.out");
+    // Clean up after test
+    std::remove("test1.db_data");
+    std::remove("test1.db_node");
 }
 
 TEST(StorageTest, TestCase2) {
-    BPTStorage<int, int> storage("test2.db");
-    executeCommands(storage, "test/storage/2.in", "test/storage/2.out");
-    std::remove("test2.db");
+    std::remove("test2.db_data");
+    std::remove("test2.db_node");
+    BPTStorage<int, int> storage("test2.db",INT_MAX);
+    executeCommands(storage, "../../test/storage/simple/2.in", "../../test/storage/simple/2.out");
+    std::remove("test2.db_data");
+    std::remove("test2.db_node");
 }
 
 TEST(StorageTest, TestCase3) {
-    BPTStorage<int, int> storage("test3.db");
-    executeCommands(storage, "test/storage/3.in", "test/storage/3.out");
-    std::remove("test3.db");
+    std::remove("test3.db_data");
+    std::remove("test3.db_node");
+    BPTStorage<int, int> storage("test3.db",INT_MAX);
+    executeCommands(storage, "../../test/storage/simple/3.in", "../../test/storage/simple/3.out");
+    std::remove("test3.db_data");
+    std::remove("test3.db_node");
 }
 
 TEST(StorageTest, TestCase4) {
-    BPTStorage<int, int> storage("test4.db");
-    executeCommands(storage, "test/storage/4.in", "test/storage/4.out");
-    std::remove("test4.db");
+    std::remove("test4.db_data");
+    std::remove("test4.db_node");
+    BPTStorage<int, int> storage("test4.db",INT_MAX);
+    executeCommands(storage, "../../test/storage/simple/4.in", "../../test/storage/simple/4.out");
+    std::remove("test4.db_data");
+    std::remove("test4.db_node");
 }
 
 TEST(StorageTest, TestCase5) {
-    BPTStorage<int, int> storage("test5.db");
-    executeCommands(storage, "test/storage/5.in", "test/storage/5.out");
-    std::remove("test5.db");
+    std::remove("test5.db_data");
+    std::remove("test5.db_node");
+    BPTStorage<int, int> storage("test5.db",INT_MAX);
+    executeCommands(storage, "../../test/storage/simple/5.in", "../../test/storage/simple/5.out");
+    std::remove("test5.db_data");
+    std::remove("test5.db_node");
 }
 
 TEST(StorageTest, TestCase6) {
-    BPTStorage<int, int> storage("test6.db");
-    executeCommands(storage, "test/storage/6.in", "test/storage/6.out");
-    std::remove("test6.db");
+    std::remove("test6.db_data");
+    std::remove("test6.db_node");
+    BPTStorage<int, int> storage("test6.db",INT_MAX);
+    executeCommands(storage, "../../test/storage/simple/6.in", "../../test/storage/simple/6.out");
+    std::remove("test6.db_data");
+    std::remove("test6.db_node");
 }
