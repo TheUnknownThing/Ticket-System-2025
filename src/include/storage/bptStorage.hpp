@@ -257,7 +257,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_leaf_node(
     node.key_count++;
     node_file.update(node, node.node_id);
 
-    if (node.key_count >= NODE_SIZE) {
+    if (node.key_count > NODE_SIZE) {
       split_node(index);
     }
   } else {
@@ -331,7 +331,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
       node.key_count--;
       node.children[node.key_count] = -1;
       data_file.update(block, block.block_id);
-      if (node.key_count <= NODE_SIZE / 3) {
+      if (node.key_count < NODE_SIZE / 2) {
         node_file.update(node, node.node_id);
         merge_nodes(index);
       } else {
@@ -362,7 +362,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
   // Check left sibling
   if (j != 0) {
     node_file.read(left, parent_node.children[j - 1]);
-    if (left.key_count >= NODE_SIZE / 2) {
+    if (left.key_count > NODE_SIZE / 2) {
       // adopt from left
       for (int k = node.key_count; k > 0; k--) {
         node.keys[k] = node.keys[k - 1];
@@ -395,7 +395,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::merge_nodes(int index) {
   }
   if (j <= parent_node.key_count - 2) {
     node_file.read(right, parent_node.children[j + 1]);
-    if (right.key_count >= NODE_SIZE / 2) {
+    if (right.key_count > NODE_SIZE / 2) {
       // adopt from right
       node.keys[node.key_count] = right.keys[0];
       node.children[node.key_count] = right.children[0];
@@ -615,7 +615,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_internal_node(
 
   node_file.update(node, node.node_id);
 
-  if (node.key_count >= NODE_SIZE) {
+  if (node.key_count > NODE_SIZE) {
     split_node(index);
   }
 }
@@ -657,7 +657,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_internal_node(
     node.key_count--;
     if (node.keys[node.key_count] == MAX_KEY)
       node.keys[node.key_count - 1] = MAX_KEY;
-    if (node.key_count <= NODE_SIZE / 3) {
+    if (node.key_count < NODE_SIZE / 2) {
       node_file.update(node, node.node_id);
       merge_nodes(index);
     } else {
