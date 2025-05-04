@@ -67,7 +67,7 @@ public:
           data[j] = data[j + 1];
         }
         key_count--;
-        return {true, key_count < BLOCK_SIZE / 2};
+        return {true, key_count <= BLOCK_SIZE / 3};
       }
     }
 
@@ -79,7 +79,7 @@ public:
    * @return true if the merge is successful, false if the merge fails.
    */
   bool merge_block(DataBlock<Key, Value, BLOCK_SIZE> &block) {
-    if (key_count + block.key_count > BLOCK_SIZE) {
+    if (key_count + block.key_count >= BLOCK_SIZE) {
       return false;
     }
     for (int i = 0; i < block.key_count; i++) {
