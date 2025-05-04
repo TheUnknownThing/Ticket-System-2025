@@ -1,6 +1,7 @@
 #include "src/include/storage/bptStorage.hpp"
 #include "utils/string64.hpp"
 #include <iostream>
+#include <functional>
 
 signed main() {
   std::ios::sync_with_stdio(false);
@@ -10,30 +11,33 @@ signed main() {
   std::cin >> n;
   std::string op;
 
-  sjtu::string64 MAXN;
-  MAXN = MAXN.STRING64_MAX();
+  size_t MAXN = ULONG_MAX;
 
-  BPTStorage<sjtu::string64, int, 55, 53> book("data", MAXN);
+  BPTStorage<size_t, int, 55, 53> book("data", MAXN);
+
+  std::hash<std::string> string_hasher;
 
   for (int i = 0; i < n; ++i) {
     std::cin >> op;
-    // insert, delete, find
     if (op == "insert") {
-      sjtu::string64 index;
-      std::cin >> index;
+      std::string index_str;
+      std::cin >> index_str;
       int value;
       std::cin >> value;
-      book.insert(index, value);
+      size_t index_hash = string_hasher(index_str); 
+      book.insert(index_hash, value);
     } else if (op == "delete") {
-      sjtu::string64 index;
-      std::cin >> index;
+      std::string index_str;
+      std::cin >> index_str;
       int value;
       std::cin >> value;
-      book.remove(index, value);
+      size_t index_hash = string_hasher(index_str);
+      book.remove(index_hash, value);
     } else if (op == "find") {
-      sjtu::string64 index;
-      std::cin >> index;
-      auto result = book.find(index);
+      std::string index_str;
+      std::cin >> index_str;
+      size_t index_hash = string_hasher(index_str);
+      auto result = book.find(index_hash);
       for (const auto &val : result) {
         std::cout << val << " ";
       }
