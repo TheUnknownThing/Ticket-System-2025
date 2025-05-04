@@ -38,8 +38,31 @@ public:
    * needs to be merged.
    */
   std::pair<bool, bool> delete_key(Key key, Value value) {
-    for (int i = 0; i < key_count; i++) {
-      if (data[i].first == key && data[i].second == value) {
+    int left = 0;
+    int right = key_count - 1;
+    int start_idx = -1;
+
+    while (left <= right) {
+      int mid = left + (right - left) / 2;
+      if (data[mid].first == key) {
+        start_idx = mid;
+        while (start_idx > 0 && data[start_idx - 1].first == key) {
+          start_idx--;
+        }
+        break;
+      } else if (data[mid].first < key) {
+        left = mid + 1;
+      } else {
+        right = mid - 1;
+      }
+    }
+
+    if (start_idx == -1) {
+      return {false, false};
+    }
+
+    for (int i = start_idx; i < key_count && data[i].first == key; i++) {
+      if (data[i].second == value) {
         for (int j = i; j < key_count - 1; j++) {
           data[j] = data[j + 1];
         }
@@ -47,6 +70,7 @@ public:
         return {true, key_count <= BLOCK_SIZE / 3};
       }
     }
+
     return {false, false};
   }
 
