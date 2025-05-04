@@ -110,23 +110,40 @@ public:
    * @note Still Need to update the block id and next block id after split.
    */
   std::pair<bool, DataBlock<Key, Value, BLOCK_SIZE>> insert_key(Key key,
-                                                                Value value) {
-    int i = 0;
-    while (i < key_count && data[i].first < key) {
-      i++;
+                                                               Value value) {
+    int left = 0;
+    int right = key_count - 1;
+    int pos = 0;
+    
+    while (left <= right) {
+      int mid = left + (right - left) / 2;
+      if (data[mid].first < key) {
+        left = mid + 1;
+      } else if (data[mid].first > key) {
+        right = mid - 1;
+      } else {
+        pos = mid;
+        while (pos < key_count && data[pos].first == key) {
+          pos++;
+        }
+        break;
+      }
     }
-    for (int j = key_count; j > i; j--) {
+    
+    if (left > right) {
+      pos = left;
+    }
+    
+    for (int j = key_count; j > pos; j--) {
       data[j] = data[j - 1];
     }
-    data[i] = std::make_pair(key, value);
+    data[pos] = std::make_pair(key, value);
     key_count++;
 
-    if (key_count < BLOCK_SIZE) {
-      // no need to split
+    if (key_count <= BLOCK_SIZE) {
       return {false, *this};
     }
 
-    // need to split the block
     DataBlock<Key, Value, BLOCK_SIZE> new_block;
     int mid = BLOCK_SIZE / 2;
     new_block.key_count = key_count - mid;
@@ -137,7 +154,6 @@ public:
 
     new_block.next_block_id = next_block_id;
     new_block.parent_id = parent_id;
-    // still need to set block.next_block_id in main function
     key_count = mid;
 
     return {true, new_block};
