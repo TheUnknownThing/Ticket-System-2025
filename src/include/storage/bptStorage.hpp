@@ -33,8 +33,8 @@ public:
   sjtu::vector<Value> find(Key key);
 
 private:
-  CachedFileOperation<NodeType, 2, 8, 16384> node_file;
-  CachedFileOperation<BlockType, 2, 8, 16384> data_file;
+  CachedFileOperation<NodeType, 2, 8, 32768> node_file;
+  CachedFileOperation<BlockType, 2, 8, 32768> data_file;
 
   std::string node_file_name;
   std::string data_file_name;
