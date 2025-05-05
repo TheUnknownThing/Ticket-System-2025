@@ -26,7 +26,7 @@ signed main() {
   std::cin >> n;
   std::string op;
 
-  BPTStorage<size_t, int, 55, 53> book("data", ULONG_MAX);
+  BPTStorage<size_t, int, 500, 500> book("data", ULONG_MAX);
 
   CustomStringHasher custom_hasher;
 
