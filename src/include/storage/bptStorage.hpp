@@ -2,8 +2,8 @@
 #define BPT_STORAGE_HPP
 
 #include "bptNode.hpp"
-#include "stl/vector.hpp"
 #include "cachedFileOperation.hpp"
+#include "stl/vector.hpp"
 #include <functional>
 
 template <typename Key, typename Value, size_t NODE_SIZE = 4,
@@ -96,7 +96,8 @@ private:
   sjtu::vector<Value> sort_result(sjtu::vector<Value> &vec);
 };
 
-template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE, typename Compare>
+template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE,
+          typename Compare>
 BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::BPTStorage(
     const std::string &file_prefix, const Key &MAX_KEY)
     : MAX_KEY(MAX_KEY) {
@@ -105,28 +106,33 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::BPTStorage(
   FileInit();
 }
 
-template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE, typename Compare>
+template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE,
+          typename Compare>
 BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::~BPTStorage() {
   node_file.write_info(root_index, 1);
 }
 
-template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE, typename Compare>
-void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::insert(Key key,
-                                                           Value value) {
+template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE,
+          typename Compare>
+void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::insert(
+    Key key, Value value) {
   int leaf_index = find_leaf_node(key);
   insert_into_leaf_node(leaf_index, key, value);
 }
 
-template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE, typename Compare>
-void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::remove(Key key,
-                                                           Value value) {
+template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE,
+          typename Compare>
+void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::remove(
+    Key key, Value value) {
   int leaf_index = find_leaf_node(key);
   delete_from_leaf_node(leaf_index, key, value);
 }
 
-template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE, typename Compare>
+template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE,
+          typename Compare>
 sjtu::vector<Value>
-BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::find(Key key, Compare cmp) {
+BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::find(Key key,
+                                                             Compare cmp) {
   sjtu::vector<Value> result;
   int leaf_index = find_leaf_node(key);
   NodeType leaf_node;
@@ -141,11 +147,10 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::find(Key key, Compare cm
     BlockType block;
     data_file.read(block, leaf_node.children[i]);
 
-    // Check current block
     for (int j = 0; j < block.key_count; j++) {
-      if (block.data[j].first == key) {
+      if (!comp(block.data[j].first, key) && !comp(key, block.data[j].first)) {
         result.push_back(block.data[j].second);
-      } else if (block.data[j].first > key) {
+      } else if (comp(key, block.data[j].first)) {
         break;
       }
     }
@@ -155,18 +160,20 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::find(Key key, Compare cm
       data_file.read(block, block.next_block_id);
       if (block.key_count == 0)
         continue;
-      if (block.data[0].first > key) {
+      if (comp(key, block.data[0].first)) {
         break;
       }
-      if (block.data[block.key_count - 1].first < key) {
+      if (comp(block.data[block.key_count - 1].first, key)) {
         continue;
-      } else {
-        for (int j = 0; j < block.key_count; j++) {
-          if (block.data[j].first == key) {
-            result.push_back(block.data[j].second);
-          } else if (block.data[j].first > key) {
-            break;
-          }
+      }
+
+      // Key may be in this block
+      for (int j = 0; j < block.key_count; j++) {
+        if (!comp(block.data[j].first, key) &&
+            !comp(key, block.data[j].first)) {
+          result.push_back(block.data[j].second);
+        } else if (comp(key, block.data[j].first)) {
+          break;
         }
       }
     }
@@ -179,8 +186,10 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::find(Key key, Compare cm
  * Begin of private methods
  */
 
-template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE, typename Compare>
-int BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::find_leaf_node(Key key) {
+template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE,
+          typename Compare>
+int BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::find_leaf_node(
+    Key key) {
   node_file.read(root_node, root_index);
   NodeType current_node = root_node;
   int current_id = root_index;
@@ -208,9 +217,11 @@ int BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::find_leaf_node(Key k
   return current_id;
 }
 
-template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE, typename Compare>
-void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::insert_into_leaf_node(
-    int index, Key key, Value value) {
+template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE,
+          typename Compare>
+void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE,
+                Compare>::insert_into_leaf_node(int index, Key key,
+                                                Value value) {
 
   NodeType node;
   node_file.read(node, index);
@@ -275,9 +286,11 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::insert_into_leaf_no
   }
 }
 
-template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE, typename Compare>
-void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::delete_from_leaf_node(
-    int index, Key key, Value value) {
+template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE,
+          typename Compare>
+void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE,
+                Compare>::delete_from_leaf_node(int index, Key key,
+                                                Value value) {
   NodeType node;
   node_file.read(node, index);
   int i = 0;
@@ -328,8 +341,10 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::delete_from_leaf_no
   }
 }
 
-template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE, typename Compare>
-void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::merge_nodes(int index) {
+template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE,
+          typename Compare>
+void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::merge_nodes(
+    int index) {
   NodeType node;
   node_file.read(node, index);
   if (node.parent_id == -1) {
@@ -468,8 +483,10 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::merge_nodes(int ind
   }
 }
 
-template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE, typename Compare>
-void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::split_node(int index) {
+template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE,
+          typename Compare>
+void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::split_node(
+    int index) {
   NodeType node;
   node_file.read(node, index);
   if (node.is_root) {
@@ -583,9 +600,11 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::split_node(int inde
   }
 }
 
-template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE, typename Compare>
-void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::insert_into_internal_node(
-    int index, Key key, int child_index, int pos) {
+template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE,
+          typename Compare>
+void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE,
+                Compare>::insert_into_internal_node(int index, Key key,
+                                                    int child_index, int pos) {
   NodeType node;
   node_file.read(node, index);
 
@@ -604,9 +623,10 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::insert_into_interna
   }
 }
 
-template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE, typename Compare>
-void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::delete_from_internal_node(
-    int index, int pos) {
+template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE,
+          typename Compare>
+void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE,
+                Compare>::delete_from_internal_node(int index, int pos) {
   NodeType node;
   node_file.read(node, index);
   if (node.is_root) {
@@ -650,7 +670,8 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::delete_from_interna
   }
 }
 
-template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE, typename Compare>
+template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE,
+          typename Compare>
 void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::FileInit() {
   if (node_file.isEmpty()) {
     root_node.parent_id = -1;
@@ -679,8 +700,10 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::FileInit() {
   }
 }
 
-template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE, typename Compare>
-sjtu::vector<Value> BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::sort_result(
+template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE,
+          typename Compare>
+sjtu::vector<Value>
+BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::sort_result(
     sjtu::vector<Value> &vec) {
   if (vec.size() <= 1)
     return vec;
