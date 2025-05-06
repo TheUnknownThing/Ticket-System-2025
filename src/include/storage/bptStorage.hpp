@@ -30,7 +30,7 @@ public:
    * @brief Find a key in the B+ tree.
    * @return vector of values associated with the key, or nullptr if not found.
    */
-  sjtu::vector<Value> find(Key key, Compare comp = Compare());
+  sjtu::vector<Value> find(Key key, Compare cmp = Compare());
 
 private:
   CachedFileOperation<NodeType, 2, 8, 32768> node_file;
@@ -148,9 +148,9 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::find(Key key,
     data_file.read(block, leaf_node.children[i]);
 
     for (int j = 0; j < block.key_count; j++) {
-      if (!comp(block.data[j].first, key) && !comp(key, block.data[j].first)) {
+      if (!cmp(block.data[j].first, key) && !cmp(key, block.data[j].first)) {
         result.push_back(block.data[j].second);
-      } else if (comp(key, block.data[j].first)) {
+      } else if (cmp(key, block.data[j].first)) {
         break;
       }
     }
@@ -160,19 +160,19 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::find(Key key,
       data_file.read(block, block.next_block_id);
       if (block.key_count == 0)
         continue;
-      if (comp(key, block.data[0].first)) {
+      if (cmp(key, block.data[0].first)) {
         break;
       }
-      if (comp(block.data[block.key_count - 1].first, key)) {
+      if (cmp(block.data[block.key_count - 1].first, key)) {
         continue;
       }
 
       // Key may be in this block
       for (int j = 0; j < block.key_count; j++) {
-        if (!comp(block.data[j].first, key) &&
-            !comp(key, block.data[j].first)) {
+        if (!cmp(block.data[j].first, key) &&
+            !cmp(key, block.data[j].first)) {
           result.push_back(block.data[j].second);
-        } else if (comp(key, block.data[j].first)) {
+        } else if (cmp(key, block.data[j].first)) {
           break;
         }
       }
