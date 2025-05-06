@@ -1,21 +1,22 @@
 #include "src/include/storage/bptStorage.hpp"
 #include "utils/string64.hpp"
-#include <iostream>
+#include <climits>
 #include <cstddef>
 #include <cstring>
+#include <iostream>
 
 struct CustomStringHasher {
-    size_t operator()(const char* str) const {
-        size_t hash = 5381;
-        const size_t salt = 33;
-        int c;
+  size_t operator()(const char *str) const {
+    size_t hash = 5381;
+    const size_t salt = 33;
+    int c;
 
-        while ((c = *str++)) {
-            hash = ((hash << 5) + hash) + c + salt;
-        }
-
-        return hash;
+    while ((c = *str++)) {
+      hash = ((hash << 5) + hash) + c + salt;
     }
+
+    return hash;
+  }
 };
 
 signed main() {
@@ -26,7 +27,11 @@ signed main() {
   std::cin >> n;
   std::string op;
 
-  BPTStorage<std::pair<size_t,int>, int, 55, 55> book("data", ULONG_MAX);
+  auto comp = [](std::pair<size_t, int> a, std::pair<size_t, int> b) {
+    return a.first < b.first;
+  };
+  BPTStorage<std::pair<size_t, int>, int, 55, 55, decltype(comp)> book(
+      "data", std::make_pair(ULLONG_MAX, INT_MAX));
 
   CustomStringHasher custom_hasher;
 
@@ -50,7 +55,7 @@ signed main() {
       sjtu::string64 index_str;
       std::cin >> index_str;
       size_t index_hash = custom_hasher(index_str.c_str());
-      auto result = book.find(std::make_pair(index_hash, value));
+      auto result = book.find(std::make_pair(index_hash, INT_MIN), comp);
       for (const auto &val : result) {
         std::cout << val << " ";
       }
