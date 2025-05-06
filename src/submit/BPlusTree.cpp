@@ -30,7 +30,7 @@ signed main() {
   auto comp = [](std::pair<size_t, int> a, std::pair<size_t, int> b) {
     return a.first < b.first;
   };
-  BPTStorage<std::pair<size_t, int>, int, 55, 55, decltype(comp)> book(
+  BPTStorage<std::pair<size_t, int>, int, 250, 250, decltype(comp)> book(
       "data", std::make_pair(ULLONG_MAX, INT_MAX));
 
   CustomStringHasher custom_hasher;

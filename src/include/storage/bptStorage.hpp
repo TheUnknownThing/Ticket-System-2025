@@ -226,9 +226,18 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE,
   NodeType node;
   node_file.read(node, index);
   // insert
+  int left = 0;
+  int right = node.key_count - 1;
   int i = 0;
-  while (i < node.key_count && key > node.keys[i]) {
-    i++;
+  
+  while (left <= right) {
+    int mid = left + (right - left) / 2;
+    if (node.keys[mid] < key) {
+      left = mid + 1;
+      i = left;
+    } else {
+      right = mid - 1;
+    }
   }
 
   BlockType block;
