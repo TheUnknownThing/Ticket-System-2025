@@ -2,8 +2,8 @@
 #define BPT_STORAGE_HPP
 
 #include "bptNode.hpp"
-#include "stl/vector.hpp"
 #include "cachedFileOperation.hpp"
+#include "stl/vector.hpp"
 #include <functional>
 
 template <typename Key, typename Value, size_t NODE_SIZE = 4,
@@ -186,18 +186,10 @@ int BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find_leaf_node(Key key) {
   int current_id = root_index;
 
   while (!current_node.is_leaf) {
-    int left = 0;
-    int right = current_node.key_count - 1;
     int child_index = 0;
-
-    while (left <= right) {
-      int mid = left + (right - left) / 2;
-      if (current_node.keys[mid] <= key) {
-        child_index = mid;
-        left = mid + 1;
-      } else {
-        right = mid - 1;
-      }
+    while (child_index < current_node.key_count - 1 &&
+           key > current_node.keys[child_index]) {
+      child_index++;
     }
 
     int child_id = current_node.children[child_index];
@@ -292,6 +284,32 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::delete_from_leaf_node(
   bool deleted = false, need_merge = false;
   data_file.read(block, node.children[i]);
   std::tie(deleted, need_merge) = block.delete_key(key, value);
+
+  if (!deleted) {
+    // not found in the current block, find afterwards
+    while (block.next_block_id != -1) {
+      data_file.read(block, block.next_block_id);
+      if (block.key_count == 0) {
+        continue;
+      }
+      if (block.data[0].first > key) {
+        break;
+      }
+      if (block.data[block.key_count - 1].first < key) {
+        continue;
+      }
+      std::tie(deleted, need_merge) = block.delete_key(key, value);
+      if (deleted) {
+        index = block.parent_id;
+        node_file.read(node, block.parent_id);
+        i = 0;
+        while (i < node.key_count && node.children[i] != block.block_id) {
+          i++;
+        }
+        break;
+      }
+    }
+  }
 
   if (deleted && need_merge && i != node.key_count - 1 && !node.is_root) {
     BlockType next_block;

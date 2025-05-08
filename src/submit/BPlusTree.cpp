@@ -26,7 +26,7 @@ signed main() {
   std::cin >> n;
   std::string op;
 
-  BPTStorage<std::pair<size_t,int>, int, 55, 55> book("data", ULONG_MAX);
+  BPTStorage<std::pair<size_t,int>, int, 55, 55> book("data", std::make_pair(ULONG_MAX, INT_MAX));
 
   CustomStringHasher custom_hasher;
 
@@ -50,7 +50,7 @@ signed main() {
       sjtu::string64 index_str;
       std::cin >> index_str;
       size_t index_hash = custom_hasher(index_str.c_str());
-      auto result = book.find(std::make_pair(index_hash, value));
+      auto result = book.find(std::make_pair(index_hash, 0));
       for (const auto &val : result) {
         std::cout << val << " ";
       }
