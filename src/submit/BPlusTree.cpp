@@ -1,21 +1,22 @@
 #include "src/include/storage/bptStorage.hpp"
 #include "utils/string64.hpp"
-#include <iostream>
+#include <climits>
 #include <cstddef>
 #include <cstring>
+#include <iostream>
 
 struct CustomStringHasher {
-    size_t operator()(const char* str) const {
-        size_t hash = 5381;
-        const size_t salt = 33;
-        int c;
+  size_t operator()(const char *str) const {
+    size_t hash = 5381;
+    const size_t salt = 33;
+    int c;
 
-        while ((c = *str++)) {
-            hash = ((hash << 5) + hash) + c + salt;
-        }
-
-        return hash;
+    while ((c = *str++)) {
+      hash = ((hash << 5) + hash) + c + salt;
     }
+
+    return hash;
+  }
 };
 
 signed main() {
@@ -26,7 +27,7 @@ signed main() {
   std::cin >> n;
   std::string op;
 
-  BPTStorage<std::pair<size_t,int>, int, 55, 55> book("data", std::make_pair(ULONG_MAX, INT_MAX));
+  BPTStorage<size_t, int, 55, 55> book("data", ULONG_MAX);
 
   CustomStringHasher custom_hasher;
 
@@ -38,19 +39,19 @@ signed main() {
       int value;
       std::cin >> value;
       size_t index_hash = custom_hasher(index_str.c_str());
-      book.insert(std::make_pair(index_hash, value), value);
+      book.insert(index_hash, value);
     } else if (op == "delete") {
       sjtu::string64 index_str;
       std::cin >> index_str;
       int value;
       std::cin >> value;
       size_t index_hash = custom_hasher(index_str.c_str());
-      book.remove(std::make_pair(index_hash, value), value);
+      book.remove(index_hash, value);
     } else if (op == "find") {
       sjtu::string64 index_str;
       std::cin >> index_str;
       size_t index_hash = custom_hasher(index_str.c_str());
-      auto result = book.find(std::make_pair(index_hash, 0));
+      auto result = book.find(index_hash);
       for (const auto &val : result) {
         std::cout << val << " ";
       }
