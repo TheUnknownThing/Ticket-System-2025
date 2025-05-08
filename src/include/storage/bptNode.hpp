@@ -32,7 +32,7 @@ public:
 
   DataBlock() : key_count(0), block_id(-1), next_block_id(-1), parent_id(-1) {}
 
-  /*
+  /**
    * @brief delete a key from the block.
    * @return true if the key is deleted, and second bool is true if the block
    * needs to be merged.
@@ -74,7 +74,7 @@ public:
     return {false, false};
   }
 
-  /*
+  /**
    * @brief Merge two blocks
    * @return true if the merge is successful, false if the merge fails.
    */
@@ -91,7 +91,7 @@ public:
     return true;
   }
 
-  /*
+  /**
    * @brief Borrow elements from the next block
    */
   Key borrow(DataBlock<Key, Value, BLOCK_SIZE> &block) {
@@ -104,7 +104,7 @@ public:
     return data[key_count - 1].first;
   }
 
-  /*
+  /**
    * @brief insert a key-value pair into the block.
    * @return true if need to split the block, and return the new block.
    * @note Still Need to update the block id and next block id after split.

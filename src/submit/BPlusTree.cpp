@@ -27,11 +27,7 @@ signed main() {
   std::cin >> n;
   std::string op;
 
-  auto comp = [](std::pair<size_t, int> a, std::pair<size_t, int> b) {
-    return a.first < b.first;
-  };
-  BPTStorage<std::pair<size_t, int>, int, 250, 250, decltype(comp)> book(
-      "data", std::make_pair(ULLONG_MAX, INT_MAX));
+  BPTStorage<size_t, int, 55, 55> book("data", ULONG_MAX);
 
   CustomStringHasher custom_hasher;
 
@@ -43,19 +39,19 @@ signed main() {
       int value;
       std::cin >> value;
       size_t index_hash = custom_hasher(index_str.c_str());
-      book.insert(std::make_pair(index_hash, value), value);
+      book.insert(index_hash, value);
     } else if (op == "delete") {
       sjtu::string64 index_str;
       std::cin >> index_str;
       int value;
       std::cin >> value;
       size_t index_hash = custom_hasher(index_str.c_str());
-      book.remove(std::make_pair(index_hash, value), value);
+      book.remove(index_hash, value);
     } else if (op == "find") {
       sjtu::string64 index_str;
       std::cin >> index_str;
       size_t index_hash = custom_hasher(index_str.c_str());
-      auto result = book.find(std::make_pair(index_hash, INT_MIN), comp);
+      auto result = book.find(index_hash);
       for (const auto &val : result) {
         std::cout << val << " ";
       }

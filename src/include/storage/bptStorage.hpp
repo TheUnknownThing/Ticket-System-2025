@@ -16,17 +16,17 @@ public:
   BPTStorage(const std::string &file_prefix, const Key &MAX_KEY);
   ~BPTStorage();
 
-  /*
+  /**
    * @brief Insert a key-value pair into the B+ tree.
    */
   void insert(Key key, Value value);
 
-  /*
+  /**
    * @brief Remove a key-value pair from the B+ tree.
    */
   void remove(Key key, Value value);
 
-  /*
+  /**
    * @brief Find a key in the B+ tree.
    * @return vector of values associated with the key, or nullptr if not found.
    */
@@ -46,22 +46,22 @@ private:
 
   int find_leaf_node(Key key);
 
-  /*
+  /**
    * @brief Insert a key-value pair into a leaf node.
    */
   void insert_into_leaf_node(int index, Key key, Value value);
 
-  /*
+  /**
    * @brief Delete a key-value pair from a leaf node.
    */
   void delete_from_leaf_node(int index, Key key, Value value);
 
-  /*
+  /**
    * @brief Merge two leaf nodes.
    */
   void merge_nodes(int index);
 
-  /*
+  /**
    * @brief Split a node.
    * @note All the corner cases when inserting is handled here
    * Several cases:
@@ -71,14 +71,14 @@ private:
    */
   void split_node(int index);
 
-  /*
+  /**
    * @brief Insert a key and child index into an internal node.
    * @note This function would only be called in split_leaf_node or
    * split_internal_node
    */
   void insert_into_internal_node(int index, Key key, int child_index, int pos);
 
-  /*
+  /**
    * @brief Delete a key from an internal node.
    * @note This function would only be called in merge_leaf_node or
    * merge_internal_node
@@ -195,18 +195,10 @@ int BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE, Compare>::find_leaf_node(
   int current_id = root_index;
 
   while (!current_node.is_leaf) {
-    int left = 0;
-    int right = current_node.key_count - 1;
     int child_index = 0;
-
-    while (left <= right) {
-      int mid = left + (right - left) / 2;
-      if (current_node.keys[mid] <= key) {
-        child_index = mid;
-        left = mid + 1;
-      } else {
-        right = mid - 1;
-      }
+    while (child_index < current_node.key_count - 1 &&
+           key > current_node.keys[child_index]) {
+      child_index++;
     }
 
     int child_id = current_node.children[child_index];
@@ -314,6 +306,32 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE,
   bool deleted = false, need_merge = false;
   data_file.read(block, node.children[i]);
   std::tie(deleted, need_merge) = block.delete_key(key, value);
+
+  if (!deleted) {
+    // not found in the current block, find afterwards
+    while (block.next_block_id != -1) {
+      data_file.read(block, block.next_block_id);
+      if (block.key_count == 0) {
+        continue;
+      }
+      if (block.data[0].first > key) {
+        break;
+      }
+      if (block.data[block.key_count - 1].first < key) {
+        continue;
+      }
+      std::tie(deleted, need_merge) = block.delete_key(key, value);
+      if (deleted) {
+        index = block.parent_id;
+        node_file.read(node, block.parent_id);
+        i = 0;
+        while (i < node.key_count && node.children[i] != block.block_id) {
+          i++;
+        }
+        break;
+      }
+    }
+  }
 
   if (deleted && need_merge && i != node.key_count - 1 && !node.is_root) {
     BlockType next_block;
