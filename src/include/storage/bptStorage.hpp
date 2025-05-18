@@ -16,17 +16,17 @@ public:
   BPTStorage(const std::string &file_prefix, const Key &MAX_KEY);
   ~BPTStorage();
 
-  /*
+  /**
    * @brief Insert a key-value pair into the B+ tree.
    */
   void insert(Key key, Value value);
 
-  /*
+  /**
    * @brief Remove a key-value pair from the B+ tree.
    */
   void remove(Key key, Value value);
 
-  /*
+  /**
    * @brief Find a key in the B+ tree.
    * @return vector of values associated with the key, or nullptr if not found.
    */
@@ -46,22 +46,22 @@ private:
 
   int find_leaf_node(Key key);
 
-  /*
+  /**
    * @brief Insert a key-value pair into a leaf node.
    */
   void insert_into_leaf_node(int index, Key key, Value value);
 
-  /*
+  /**
    * @brief Delete a key-value pair from a leaf node.
    */
   void delete_from_leaf_node(int index, Key key, Value value);
 
-  /*
+  /**
    * @brief Merge two leaf nodes.
    */
   void merge_nodes(int index);
 
-  /*
+  /**
    * @brief Split a node.
    * @note All the corner cases when inserting is handled here
    * Several cases:
@@ -71,14 +71,14 @@ private:
    */
   void split_node(int index);
 
-  /*
+  /**
    * @brief Insert a key and child index into an internal node.
    * @note This function would only be called in split_leaf_node or
    * split_internal_node
    */
   void insert_into_internal_node(int index, Key key, int child_index, int pos);
 
-  /*
+  /**
    * @brief Delete a key from an internal node.
    * @note This function would only be called in merge_leaf_node or
    * merge_internal_node
@@ -175,7 +175,7 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find(Key key) {
   return sort_result(result);
 }
 
-/*
+/**
  * Begin of private methods
  */
 
