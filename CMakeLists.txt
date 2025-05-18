@@ -9,7 +9,7 @@ add_library(ticket_system_lib INTERFACE)
 
 include_directories(ticket_system_lib INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include
-    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -35,5 +35,8 @@ add_custom_target(clean_data_files
     COMMENT "Removing data_data and data_node files"
 )
 
-add_executable(code ${CMAKE_CURRENT_SOURCE_DIR}/src/submit/BPlusTree.cpp)
+# add_executable(code ${CMAKE_CURRENT_SOURCE_DIR}/src/submit/BPlusTree.cpp)
+# add_dependencies(code clean_data_files)
+
+add_executable(code ${CMAKE_CURRENT_SOURCE_DIR}/src/submit/TicketSystem.cpp)
 add_dependencies(code clean_data_files)
