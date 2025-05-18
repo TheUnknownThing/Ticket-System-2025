@@ -2,8 +2,8 @@
 #define BPT_STORAGE_HPP
 
 #include "bptNode.hpp"
-#include "stl/vector.hpp"
 #include "cachedFileOperation.hpp"
+#include "stl/vector.hpp"
 #include <functional>
 
 template <typename Key, typename Value, size_t NODE_SIZE = 4,
@@ -31,6 +31,8 @@ public:
    * @return vector of values associated with the key, or nullptr if not found.
    */
   sjtu::vector<Value> find(Key key);
+
+  bool isEmpty = true;
 
 private:
   CachedFileOperation<NodeType, 2, 8, 32768> node_file;
@@ -172,7 +174,7 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find(Key key) {
     }
   }
 
-  return sort_result(result);
+  return result;
 }
 
 /**
@@ -688,49 +690,12 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::FileInit() {
     node_file.update(root_node, root_index);
 
     node_file.write_info(root_index, 1);
+    isEmpty = true;
   } else {
     node_file.get_info(root_index, 1);
-
     node_file.read(root_node, root_index);
+    isEmpty = false;
   }
-}
-
-template <typename Key, typename Value, size_t NODE_SIZE, size_t BLOCK_SIZE>
-sjtu::vector<Value> BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::sort_result(
-    sjtu::vector<Value> &vec) {
-  if (vec.size() <= 1)
-    return vec;
-
-  auto partition = [&vec](int low, int high) {
-    Value pivot = vec[high];
-    int i = low - 1;
-
-    for (int j = low; j < high; j++) {
-      if (vec[j] <= pivot) {
-        i++;
-        Value temp = vec[i];
-        vec[i] = vec[j];
-        vec[j] = temp;
-      }
-    }
-
-    Value temp = vec[i + 1];
-    vec[i + 1] = vec[high];
-    vec[high] = temp;
-
-    return i + 1;
-  };
-
-  std::function<void(int, int)> quicksort = [&](int low, int high) {
-    if (low < high) {
-      int pi = partition(low, high);
-      quicksort(low, pi - 1);
-      quicksort(pi + 1, high);
-    }
-  };
-
-  quicksort(0, vec.size() - 1);
-  return vec;
 }
 
 #endif // BPT_STORAGE_HPP

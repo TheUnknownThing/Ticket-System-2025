@@ -144,7 +144,7 @@ public:
     return result;
   }
 
-  string64 STRING64_MAX() const {
+  static string64 STRING64_MAX() {
     string64 max_str;
     for (size_t i = 0; i < 64; ++i) {
       max_str.s[i] = 126;
