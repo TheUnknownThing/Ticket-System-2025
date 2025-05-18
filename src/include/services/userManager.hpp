@@ -3,45 +3,47 @@
 
 #include "storage/bptStorage.hpp"
 #include "stl/map.hpp"
+#include "utils/string64.hpp"
 #include <string>
 
 using sjtu::map;
+using sjtu::string64;
 
 struct User {
-    std::string username;
-    std::string password;
-    std::string name;
-    std::string mailAddr;
+    string64 username;
+    string64 password;
+    string64 name;
+    string64 mailAddr;
     int privilege;
     
     User() = default;
-    User(const std::string& un, const std::string& pw, const std::string& nm, 
-         const std::string& ma, int priv)
+    User(const string64& un, const string64& pw, const string64& nm, 
+         const string64& ma, int priv)
         : username(un), password(pw), name(nm), mailAddr(ma), privilege(priv) {}
 };
 
 class UserManager {
 private:
-    BPTStorage<std::string, User> userDB;
-    map<std::string, int> loggedInUsers; // username -> privilege
+    BPTStorage<string64, User> userDB;
+    map<string64, int> loggedInUsers; // username -> privilege
     
 public:
-    UserManager(const std::string& filename);
+    UserManager(const string64& filename);
     
-    bool addUser(const std::string& curUser, const std::string& username, 
-                const std::string& password, const std::string& name,
-                const std::string& mailAddr, int privilege);
+    bool addUser(const string64& curUser, const string64& username, 
+                const string64& password, const string64& name,
+                const string64& mailAddr, int privilege);
     
-    bool login(const std::string& username, const std::string& password);
-    bool logout(const std::string& username);
+    bool login(const string64& username, const string64& password);
+    bool logout(const string64& username);
     
-    User queryProfile(const std::string& curUser, const std::string& username);
-    bool modifyProfile(const std::string& curUser, const std::string& username,
-                      const std::string& password, const std::string& name,
-                      const std::string& mailAddr, int privilege);
+    User queryProfile(const string64& curUser, const string64& username);
+    bool modifyProfile(const string64& curUser, const string64& username,
+                      const string64& password, const string64& name,
+                      const string64& mailAddr, int privilege);
     
-    bool isLoggedIn(const std::string& username) const;
-    int getPrivilege(const std::string& username) const;
+    bool isLoggedIn(const string64& username) const;
+    int getPrivilege(const string64& username) const;
     
     bool isFirstUser() const;
 };

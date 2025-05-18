@@ -5,6 +5,7 @@
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 
 namespace sjtu {
 class string64 {
@@ -23,11 +24,30 @@ public:
     }
   }
 
+  string64(const std::string& str) {
+    if (!str.empty()) {
+      strncpy(s, str.c_str(), 64);
+      s[64] = '\0';
+    } else {
+      s[0] = '\0';
+    }
+  }
+
   string64(const string64 &other) { strcpy(s, other.s); }
 
   string64 &operator=(const string64 &other) {
     if (this != &other) {
       strcpy(s, other.s);
+    }
+    return *this;
+  }
+
+  string64 &operator=(const std::string &str) {
+    if (!str.empty()) {
+      strncpy(s, str.c_str(), 64);
+      s[64] = '\0';
+    } else {
+      s[0] = '\0';
     }
     return *this;
   }
