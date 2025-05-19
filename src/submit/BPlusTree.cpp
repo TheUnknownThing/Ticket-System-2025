@@ -1,5 +1,5 @@
 #include "src/include/storage/bptStorage.hpp"
-#include "utils/string64.hpp"
+#include "utils/string32.hpp"
 #include <iostream>
 #include <cstddef>
 #include <cstring>
@@ -33,21 +33,21 @@ signed main() {
   for (int i = 0; i < n; ++i) {
     std::cin >> op;
     if (op == "insert") {
-      sjtu::string64 index_str;
+      sjtu::string32 index_str;
       std::cin >> index_str;
       int value;
       std::cin >> value;
       size_t index_hash = custom_hasher(index_str.c_str());
       book.insert(index_hash, value);
     } else if (op == "delete") {
-      sjtu::string64 index_str;
+      sjtu::string32 index_str;
       std::cin >> index_str;
       int value;
       std::cin >> value;
       size_t index_hash = custom_hasher(index_str.c_str());
       book.remove(index_hash, value);
     } else if (op == "find") {
-      sjtu::string64 index_str;
+      sjtu::string32 index_str;
       std::cin >> index_str;
       size_t index_hash = custom_hasher(index_str.c_str());
       auto result = book.find(index_hash);

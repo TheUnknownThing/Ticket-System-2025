@@ -3,22 +3,22 @@
 
 #include "storage/bptStorage.hpp"
 #include "stl/map.hpp"
-#include "utils/string64.hpp"
+#include "utils/string32.hpp"
 #include <string>
 
 using sjtu::map;
-using sjtu::string64;
+using sjtu::string32;
 
 struct User {
-    string64 username;
-    string64 password;
-    string64 name;
-    string64 mailAddr;
+    string32 username;
+    string32 password;
+    string32 name;
+    string32 mailAddr;
     int privilege;
     
     User() = default;
-    User(const string64& un, const string64& pw, const string64& nm, 
-         const string64& ma, int priv)
+    User(const string32& un, const string32& pw, const string32& nm, 
+         const string32& ma, int priv)
         : username(un), password(pw), name(nm), mailAddr(ma), privilege(priv) {}
 
     bool operator==(const User& other) const {
@@ -33,36 +33,36 @@ struct User {
 
 class UserManager {
 private:
-    BPTStorage<string64, User> userDB;
-    map<string64, int> loggedInUsers; // username -> privilege
+    BPTStorage<string32, User> userDB;
+    map<string32, int> loggedInUsers; // username -> privilege
     
 public:
     UserManager(const std::string& filename);
     
-    bool addUser(const string64& curUser, const string64& username, 
-                const string64& password, const string64& name,
-                const string64& mailAddr, int privilege);
+    bool addUser(const string32& curUser, const string32& username, 
+                const string32& password, const string32& name,
+                const string32& mailAddr, int privilege);
     
-    bool login(const string64& username, const string64& password);
-    bool logout(const string64& username);
+    bool login(const string32& username, const string32& password);
+    bool logout(const string32& username);
     
-    User queryProfile(const string64& curUser, const string64& username);
-    bool modifyProfile(const string64& curUser, const string64& username,
-                      const string64& password, const string64& name,
-                      const string64& mailAddr, int privilege);
+    User queryProfile(const string32& curUser, const string32& username);
+    bool modifyProfile(const string32& curUser, const string32& username,
+                      const string32& password, const string32& name,
+                      const string32& mailAddr, int privilege);
     
-    bool isLoggedIn(const string64& username) const;
-    int getPrivilege(const string64& username) const;
+    bool isLoggedIn(const string32& username) const;
+    int getPrivilege(const string32& username) const;
     
     bool isFirstUser() const;
 };
 
 UserManager::UserManager(const std::string& filename) 
-    : userDB(filename + "_user", string64::STRING64_MAX()) {}
+    : userDB(filename + "_user", string32::string32_MAX()) {}
 
-bool UserManager::addUser(const string64& curUser, const string64& username, 
-                        const string64& password, const string64& name,
-                        const string64& mailAddr, int privilege) {
+bool UserManager::addUser(const string32& curUser, const string32& username, 
+                        const string32& password, const string32& name,
+                        const string32& mailAddr, int privilege) {
     if (userDB.find(username).size() > 0) return false;
     
     if (!isFirstUser()) {
@@ -77,7 +77,7 @@ bool UserManager::addUser(const string64& curUser, const string64& username,
     return true;
 }
 
-bool UserManager::login(const string64& username, const string64& password) {
+bool UserManager::login(const string32& username, const string32& password) {
     auto users = userDB.find(username);
     if (users.empty() || users[0].password != password) return false;
     if (isLoggedIn(username)) return false;
@@ -86,13 +86,13 @@ bool UserManager::login(const string64& username, const string64& password) {
     return true;
 }
 
-bool UserManager::logout(const string64& username) {
+bool UserManager::logout(const string32& username) {
     if (!isLoggedIn(username)) return false;
     loggedInUsers.erase(loggedInUsers.find(username));
     return true;
 }
 
-User UserManager::queryProfile(const string64& curUser, const string64& username) {
+User UserManager::queryProfile(const string32& curUser, const string32& username) {
     if (!isLoggedIn(curUser)) return User();
     
     auto users = userDB.find(username);
@@ -104,9 +104,9 @@ User UserManager::queryProfile(const string64& curUser, const string64& username
     return users[0];
 }
 
-bool UserManager::modifyProfile(const string64& curUser, const string64& username,
-                              const string64& password, const string64& name,
-                              const string64& mailAddr, int privilege) {
+bool UserManager::modifyProfile(const string32& curUser, const string32& username,
+                              const string32& password, const string32& name,
+                              const string32& mailAddr, int privilege) {
     if (!isLoggedIn(curUser)) return false;
     
     auto users = userDB.find(username);
@@ -129,11 +129,11 @@ bool UserManager::modifyProfile(const string64& curUser, const string64& usernam
     return true;
 }
 
-bool UserManager::isLoggedIn(const string64& username) const {
+bool UserManager::isLoggedIn(const string32& username) const {
     return loggedInUsers.find(username) != loggedInUsers.cend();
 }
 
-int UserManager::getPrivilege(const string64& username) const {
+int UserManager::getPrivilege(const string32& username) const {
     auto it = loggedInUsers.find(username);
     if (it != loggedInUsers.cend()) return it->second;
     return -1;
