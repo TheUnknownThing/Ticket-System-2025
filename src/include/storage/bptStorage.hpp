@@ -6,8 +6,8 @@
 #include "stl/vector.hpp"
 #include <functional>
 
-template <typename Key, typename Value, size_t NODE_SIZE = 4,
-          size_t BLOCK_SIZE = 4>
+template <typename Key, typename Value, size_t NODE_SIZE = 40,
+          size_t BLOCK_SIZE = 40>
 class BPTStorage {
 public:
   using NodeType = BPTNode<Key, NODE_SIZE>;
