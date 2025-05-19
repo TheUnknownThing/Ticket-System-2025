@@ -22,10 +22,9 @@ struct User {
       : username(un), password(pw), name(nm), mailAddr(ma), privilege(priv) {}
 
   bool operator==(const User &other) const {
-    return username == other.username && password == other.password &&
-           name == other.name && mailAddr == other.mailAddr &&
-           privilege == other.privilege;
+    return username == other.username;
   }
+
   bool operator!=(const User &other) const { return !(*this == other); }
 
   friend std::ostream &operator<<(std::ostream &os, const User &user) {
@@ -160,9 +159,7 @@ void UserManager::clean() {
   userDB.clear();
 }
 
-void UserManager::clearLoggedInUsers() {
-  loggedInUsers.clear();
-}
+void UserManager::clearLoggedInUsers() { loggedInUsers.clear(); }
 
 bool UserManager::isLoggedIn(const string32 &username) const {
   return loggedInUsers.find(username) != loggedInUsers.cend();

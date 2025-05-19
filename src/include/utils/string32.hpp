@@ -144,6 +144,8 @@ public:
     return result;
   }
 
+  std::string toString() const { return std::string(s); }
+
   static string32 string32_MAX() {
     string32 max_str;
     for (size_t i = 0; i < 32; ++i) {

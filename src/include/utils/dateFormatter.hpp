@@ -1,0 +1,103 @@
+#ifndef DATE_FORMATTER_HPP
+#define DATE_FORMATTER_HPP
+
+#include <string>
+#include "utils/string32.hpp"
+
+using sjtu::string32;
+
+const int DAYS_IN_MONTH[] = {0, 0, 0, 0, 0, 0, 30, 31, 31};
+
+// Helper to parse "hh:mm" into minutes from midnight
+int parseTimeToMinutes(const string32 &time_s32) {
+  std::string time_str = time_s32.toString();
+  if (time_str.length() != 5 || time_str[2] != ':') {
+    return -1;
+  }
+  try {
+    return std::stoi(time_str.substr(0, 2)) * 60 +
+           std::stoi(time_str.substr(3, 2));
+  } catch (const std::exception &) {
+    return -1; // Error in conversion
+  }
+}
+
+// Helper to parse "mm-dd" into an integer (e.g., 601 for "06-01")
+int parseDateToMMDD(const string32 &date_s32) {
+  std::string date_str = date_s32.toString();
+  if (date_str.length() != 5 || date_str[2] != '-') {
+    return -1;
+  }
+  try {
+    return std::stoi(date_str.substr(0, 2)) * 100 +
+           std::stoi(date_str.substr(3, 2));
+  } catch (const std::exception &) {
+    return -1;
+  }
+}
+int parseDateToMMDDStd(const std::string &date_str) {
+  if (date_str.length() != 5 || date_str[2] != '-') {
+    return -1;
+  }
+  try {
+    return std::stoi(date_str.substr(0, 2)) * 100 +
+           std::stoi(date_str.substr(3, 2));
+  } catch (const std::exception &) {
+    return -1;
+  }
+}
+
+// Helper to format minutes from midnight into "hh:mm"
+std::string formatMinutesToTime(int minutes_in_day) {
+  if (minutes_in_day < 0)
+    return "xx:xx";
+  char buf[6];
+  std::sprintf(buf, "%02d:%02d", minutes_in_day / 60, minutes_in_day % 60);
+  return std::string(buf);
+}
+
+// Helper to format MMDD integer into "mm-dd"
+std::string formatDateFromMMDD(int date_mmdd) {
+  if (date_mmdd < 0)
+    return "xx-xx";
+  if (date_mmdd / 100 < 1 || date_mmdd / 100 > 12 || date_mmdd % 100 < 1 ||
+      date_mmdd % 100 > 31)
+    return "xx-xx";
+  char buf[6];
+  std::sprintf(buf, "%02d-%02d", date_mmdd / 100, date_mmdd % 100);
+  return std::string(buf);
+}
+
+// Adds duration_minutes to a date (mmdd) and time (minutes_in_day)
+void addDurationToDateTime(int &date_mmdd, int &time_minutes_in_day,
+                           int duration_minutes) {
+  if (duration_minutes < 0)
+    return;
+
+  time_minutes_in_day += duration_minutes;
+  while (time_minutes_in_day >= 1440) { // 1440 minutes in a day
+    time_minutes_in_day -= 1440;
+    int month = date_mmdd / 100;
+    int day = date_mmdd % 100;
+
+    day++;
+    if (month < 6 || month > 8 || DAYS_IN_MONTH[month] == 0) {
+      date_mmdd = -1; // Mark as invalid
+      return;
+    }
+    if (day > DAYS_IN_MONTH[month]) {
+      day = 1;
+      month++;
+      if (month > 8) {
+        if (month == 9 && DAYS_IN_MONTH[8] == 31) {
+        } else {
+          date_mmdd = -1;
+          return;
+        }
+      }
+    }
+    date_mmdd = month * 100 + day;
+  }
+}
+
+#endif // DATE_FORMATTER_HPP
