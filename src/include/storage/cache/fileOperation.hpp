@@ -89,6 +89,17 @@ public:
     file.seekg(0, std::ios::end);
     return file.tellg() == info_len * sizeof(int);
   }
+
+  void clear() {
+    file.clear();
+    file.close();
+    file.open(file_name, std::ios::out | std::ios::binary);
+    file.close();
+    file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+    int tmp = 0;
+    for (int i = 0; i < info_len; ++i)
+      file.write(reinterpret_cast<char *>(&tmp), sizeof(int));
+  }
 };
 
 #endif // BPT_FILEOPERATION_HPP

@@ -80,7 +80,7 @@ bool CommandParser::parse(const std::string &line, int &timestamp,
     std::string value;
 
     if (iss.peek() != EOF && iss.peek() != '-') {
-      getline(iss, value);
+      iss >> value;
       // Trim leading space
       value.erase(0, value.find_first_not_of(' '));
     }

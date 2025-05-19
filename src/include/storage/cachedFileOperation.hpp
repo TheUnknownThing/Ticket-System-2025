@@ -53,6 +53,11 @@ public:
   }
 
   void flush() { cache.flush(); }
+
+  void clear() {
+    cache.clear();
+    disk.clear();
+  }
 };
 
 #endif // CACHED_FILE_OPERATION_HPP

@@ -32,6 +32,15 @@ public:
    */
   sjtu::vector<Value> find(Key key);
 
+  /**
+   * @brief Clear the B+ tree.
+   */
+  void clear() {
+    node_file.clear();
+    data_file.clear();
+    FileInit();
+  }
+
   bool isEmpty = true;
 
 private:
@@ -212,6 +221,7 @@ void BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::insert_into_leaf_node(
   while (i < node.key_count && key > node.keys[i]) {
     i++;
   }
+  isEmpty = false;
 
   BlockType block;
   if (node.children[i] == -1) {

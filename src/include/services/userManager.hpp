@@ -31,8 +31,8 @@ struct User {
   friend std::ostream &operator<<(std::ostream &os, const User &user) {
     if (user == User())
       return os << "-1";
-    os << user.username << " " << user.name << " " << user.mailAddr
-       << " " << user.privilege;
+    os << user.username << " " << user.name << " " << user.mailAddr << " "
+       << user.privilege;
     return os;
   }
 };
@@ -57,6 +57,10 @@ public:
                      const string32 &password, const string32 &name,
                      const string32 &mailAddr, int privilege);
 
+  void clean();
+  void clearLoggedInUsers();
+
+private:
   bool isLoggedIn(const string32 &username) const;
   int getPrivilege(const string32 &username) const;
 
@@ -149,6 +153,15 @@ User UserManager::modifyProfile(const string32 &curUser,
   userDB.remove(username, users[0]);
   userDB.insert(username, modified);
   return modified;
+}
+
+void UserManager::clean() {
+  loggedInUsers.clear();
+  userDB.clear();
+}
+
+void UserManager::clearLoggedInUsers() {
+  loggedInUsers.clear();
 }
 
 bool UserManager::isLoggedIn(const string32 &username) const {

@@ -125,5 +125,14 @@ public:
       }
     }
   }
+
+  void clear() {
+    for (auto it = map.begin(); it != map.end(); ++it) {
+      if (it->second.dirty && writer) {
+        writer(it->first, it->second.val, writer_context);
+      }
+    }
+    map.clear();
+  }
 };
 #endif // LRUK_CACHE_HPP

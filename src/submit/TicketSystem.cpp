@@ -7,6 +7,15 @@
 
 using sjtu::map;
 
+//#define DEBUG_FLAG
+
+#ifdef DEBUG_FLAG
+#define DEBUG_CMD(cmd) std::cout << "[DEBUG] Command: " << (cmd) << std::endl;
+#else
+#define DEBUG_CMD(cmd)
+#endif
+
+
 int main() {
   UserManager userManager("users");
   // TrainManager trainManager;
@@ -19,19 +28,22 @@ int main() {
     map<char, std::string> params;
 
     if (!CommandParser::parse(line, timestamp, command, params)) {
-      std::cout << "[" << timestamp << "] -1" << std::endl;
+      std::cout << "[" << timestamp << "] -1"; // Invalid command
       continue;
     }
+
+    DEBUG_CMD(command);
 
     std::cout << "[" << timestamp << "] ";
 
     try {
       if (command == "add_user") {
-        std::cout << userManager.addUser(params['c'], params['u'], params['p'],
+        std::cout << (userManager.addUser(params['c'], params['u'], params['p'],
                                          params['n'], params['m'],
-                                         std::stoi(params['g']));
+                                         std::stoi(params['g'])) ? "0" : "-1");
       } else if (command == "login") {
-        std::cout << (userManager.login(params['u'], params['p']) ? "0" : "-1");
+        std::cout << (userManager.login(params['u'], params['p']) ? "0" : "-1") 
+                 ;
       } else if (command == "logout") {
         std::cout << (userManager.logout(params['u']) ? "0" : "-1");
       } else if (command == "query_profile") {
@@ -42,7 +54,7 @@ int main() {
             params.count('n') ? params['n'] : "",
             params.count('m') ? params['m'] : "",
             params.count('g') ? std::stoi(params['g']) : -1);
-      } else if (command == "add_train") {
+      } /*else if (command == "add_train") {
         std::cout << trainManager.addTrain(
             params['i'], std::stoi(params['n']), std::stoi(params['m']),
             params['s'], params['p'], params['x'], params['t'], params['o'],
@@ -76,23 +88,23 @@ int main() {
       } else if (command == "refund_ticket") {
         int n = params.count('n') ? std::stoi(params['n']) : 1;
         std::cout << orderManager.refundTicket(params['u'], n);
-      } else if (command == "clean") {
+      }*/ else if (command == "clean") {
         userManager.clean();
-        trainManager.clean();
-        orderManager.clean();
+        // trainManager.clean();
+        // orderManager.clean();
         std::cout << "0";
       } else if (command == "exit") {
-        userManager.cleanLoggedInUsers();
+        userManager.clearLoggedInUsers();
         std::cout << "bye";
         break;
       } else {
         std::cout << "-1"; // Unknown command
       }
     } catch (const std::exception &e) {
-      std::cout << "-1"; // Handle any parsing errors
+      std::cout << "-1"; // Exception occurred
     }
 
-    std::cout << std::endl;
+    std::cout  << "\n";
   }
   return 0;
 }
