@@ -1,6 +1,7 @@
 #ifndef TRAIN_MANAGER_HPP
 #define TRAIN_MANAGER_HPP
 
+#include "services/orderManager.hpp"
 #include "stl/vector.hpp"
 #include "storage/bptStorage.hpp"
 #include "storage/cachedFileOperation.hpp"
@@ -48,12 +49,12 @@ struct Train {
   char type;
   bool isReleased;
 
-  bool operator==(const Train &other) const {
-    return trainID == other.trainID;
-  }
+  bool operator==(const Train &other) const { return trainID == other.trainID; }
 };
 
 class TrainManager {
+  friend class OrderManager;
+
 private:
   BPTStorage<string32, Train> trainDB;
   StationBucketManager stationBucketManager;
@@ -74,6 +75,13 @@ public:
   int releaseTrain(const string32 &trainID);
   std::string queryTrain(const string32 &trainID,
                          const string32 &date_str); // date_str is "mm-dd"
+
+private:
+  int buyTicket(const string32 &trainID, const string32 &date_str, int num,
+                const string32 &from, const string32 &to);
+
+  bool refundTicket(const string32 &trainID, const string32 &date_str, int num,
+                    const string32 &from, const string32 &to);
 };
 
 StationBucketManager::StationBucketManager(const std::string &stationFile)
@@ -106,10 +114,10 @@ vector<Station> StationBucketManager::queryStations(int bucketID, int num) {
   return stations_vec;
 }
 
-// TrainManager implementations
 TrainManager::TrainManager(const std::string &trainFile,
                            const std::string &stationFile)
-    : trainDB(trainFile + "_train", string32::string32_MAX()), stationBucketManager(stationFile) {}
+    : trainDB(trainFile + "_train", string32::string32_MAX()),
+      stationBucketManager(stationFile) {}
 
 int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
                            int seatNum_val, const string32 &stations_str,
