@@ -63,12 +63,12 @@ public:
   TrainManager(const std::string &trainFile, const std::string &stationFile);
 
   int addTrain(const string32 &trainID, int stationNum_val, int seatNum_val,
-               const string32 &stations_str,      // -s ("s1|s2|s3")
-               const string32 &prices_str,        // -p ("p1|p2")
-               const string32 &startTime_str,     // -x ("hh:mm")
-               const string32 &travelTimes_str,   // -t ("t1|t2")
-               const string32 &stopoverTimes_str, // -o ("st1" or "_")
-               const string32 &saleDates_str,     // -d ("d1|d2")
+               const std::string &stations_str,      // -s ("s1|s2|s3")
+               const std::string &prices_str,        // -p ("p1|p2")
+               const std::string &startTime_str,     // -x ("hh:mm")
+               const std::string &travelTimes_str,   // -t ("t1|t2")
+               const std::string &stopoverTimes_str, // -o ("st1" or "_")
+               const std::string &saleDates_str,     // -d ("d1|d2")
                char trainType);                   // -y
 
   int deleteTrain(const string32 &trainID);
@@ -120,35 +120,35 @@ TrainManager::TrainManager(const std::string &trainFile,
       stationBucketManager(stationFile) {}
 
 int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
-                           int seatNum_val, const string32 &stations_str,
-                           const string32 &prices_str,
-                           const string32 &startTime_str,
-                           const string32 &travelTimes_str,
-                           const string32 &stopoverTimes_str,
-                           const string32 &saleDates_str, char trainType) {
+                           int seatNum_val, const std::string &stations_str,
+                           const std::string &prices_str,
+                           const std::string &startTime_str,
+                           const std::string &travelTimes_str,
+                           const std::string &stopoverTimes_str,
+                           const std::string &saleDates_str, char trainType) {
   if (!trainDB.find(trainID).empty()) {
     return -1;
   }
 
-  vector<string32> stationNames = splitS32String(stations_str, '|');
-  vector<int> prices = splitS32StringToInt(prices_str, '|');
+  vector<string32> stationNames = splitString(stations_str, '|');
+  vector<int> prices = splitStringToInt(prices_str, '|');
   int trainStartTimeMinutes = parseTimeToMinutes(startTime_str);
-  vector<int> travelTimesMinutes = splitS32StringToInt(travelTimes_str, '|');
+  vector<int> travelTimesMinutes = splitStringToInt(travelTimes_str, '|');
   vector<int> stopoverTimesMinutes =
-      splitS32StringToInt(stopoverTimes_str, '|'); // Handles "_"
+      splitStringToInt(stopoverTimes_str, '|'); // Handles "_"
 
-  vector<string32> saleDateParts = splitS32String(saleDates_str, '|');
+  vector<string32> saleDateParts = splitString(saleDates_str, '|');
   if (stationNames.size() != static_cast<size_t>(stationNum_val) ||
       prices.size() != static_cast<size_t>(stationNum_val - 1) ||
       travelTimesMinutes.size() != static_cast<size_t>(stationNum_val - 1) ||
       (stationNum_val > 2 && stopoverTimesMinutes.size() !=
                                  static_cast<size_t>(stationNum_val - 2)) ||
       (stationNum_val == 2 && !stopoverTimesMinutes.empty() &&
-       stopoverTimes_str.toString() != "_") ||
+       stopoverTimes_str != "_") ||
       trainStartTimeMinutes == -1 || saleDateParts.size() != 2) {
     return -1;
   }
-  if (stationNum_val == 2 && stopoverTimes_str.toString() != "_") {
+  if (stationNum_val == 2 && stopoverTimes_str != "_") {
     if (!stopoverTimesMinutes.empty())
       return -1;
   }
