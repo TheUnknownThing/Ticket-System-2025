@@ -22,7 +22,7 @@ struct Station {
   int price;
   int arrivalTimeOffset;
   int leavingTimeOffset;
-  int initialSeats;
+  int leftSeats;
 };
 
 class StationBucketManager {
@@ -69,7 +69,7 @@ public:
                const std::string &travelTimes_str,   // -t ("t1|t2")
                const std::string &stopoverTimes_str, // -o ("st1" or "_")
                const std::string &saleDates_str,     // -d ("d1|d2")
-               char trainType);                   // -y
+               char trainType);                      // -y
 
   int deleteTrain(const string32 &trainID);
   int releaseTrain(const string32 &trainID);
@@ -165,7 +165,7 @@ int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
   for (int i = 0; i < stationNum_val; ++i) {
     Station s;
     s.name = stationNames[i];
-    s.initialSeats = seatNum_val;
+    s.leftSeats = seatNum_val;
 
     if (i == 0) { // Start station
       s.isStart = true;
@@ -265,13 +265,13 @@ std::string TrainManager::queryTrain(const string32 &trainID,
   std::ostringstream oss;
   oss << train.trainID.toString() << " " << train.type << "\n";
 
-  vector<Station> stationDefs = stationBucketManager.queryStations(
+  vector<Station> stations = stationBucketManager.queryStations(
       train.stationBucketID, train.stationNum);
 
   int cumulativePrice = 0;
 
   for (int i = 0; i < train.stationNum; ++i) {
-    const Station &s = stationDefs[i];
+    const Station &s = stations[i];
     std::string arrivalTimeStr, leavingTimeStr;
 
     int actualArrivalDate = queryDateMMDD;
@@ -313,8 +313,7 @@ std::string TrainManager::queryTrain(const string32 &trainID,
     if (s.isEnd) {
       oss << "x";
     } else {
-      // NOTE: NEED IMPLEMENT
-      oss << train.seatNum;
+      oss << s.leftSeats;
     }
 
     if (!s.isEnd) {
