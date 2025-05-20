@@ -22,7 +22,7 @@ struct Station {
   int price;
   int arrivalTimeOffset;
   int leavingTimeOffset;
-  int leftSeats;
+  int index; // 0-based index in the station
 };
 
 class StationBucketManager {
@@ -77,8 +77,14 @@ public:
                          const string32 &date_str); // date_str is "mm-dd"
 
 private:
-  int buyTicket(const string32 &trainID, const string32 &date_str, int num,
-                const string32 &from, const string32 &to);
+  /**
+   * @brief Buy tickets for a specific train.
+   * @return A pair of integers: the total price and the departure date of
+   * train's START station in MMDD format.
+   */
+  std::pair<int, int> buyTicket(const string32 &trainID,
+                                const string32 &date_str, int num,
+                                const string32 &from, const string32 &to);
 
   bool refundTicket(const string32 &trainID, const string32 &date_str, int num,
                     const string32 &from, const string32 &to);
@@ -165,7 +171,9 @@ int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
   for (int i = 0; i < stationNum_val; ++i) {
     Station s;
     s.name = stationNames[i];
-    s.leftSeats = seatNum_val;
+    // TODO: NEED IMPLEMENTATION
+    // s.leftSeats = seatNum_val;
+    s.index = i;
 
     if (i == 0) { // Start station
       s.isStart = true;
@@ -313,7 +321,8 @@ std::string TrainManager::queryTrain(const string32 &trainID,
     if (s.isEnd) {
       oss << "x";
     } else {
-      oss << s.leftSeats;
+      // TODO: NEED IMPLEMENTATION
+      // oss << s.leftSeats;
     }
 
     if (!s.isEnd) {

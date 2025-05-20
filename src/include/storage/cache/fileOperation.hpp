@@ -99,6 +99,10 @@ public:
     int tmp = 0;
     for (int i = 0; i < info_len; ++i)
       file.write(reinterpret_cast<char *>(&tmp), sizeof(int));
+    file.flush();
+    file.clear();
+    file.seekg(0);
+    file.seekp(0);
   }
 };
 

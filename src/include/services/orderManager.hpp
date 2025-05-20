@@ -15,10 +15,7 @@ struct Order {
   string32 trainID;
   string32 from;
   string32 to;
-  int departureDateMMDD;   // MMDD format
-  int leavingTimeMinutes;  // Minutes from midnight
-  int arrivalDateMMDD;     // MMDD format
-  int arrivingTimeMinutes; // Minutes from midnight
+  int departureDateMMDD; // MMDD format of train depart from START station
   int price;
   int num;
   OrderStatus status;
@@ -29,9 +26,7 @@ struct Order {
         const string32 &t, int depDate, int depTime, int arrDate, int arrTime,
         int pr, int n, OrderStatus st, int ts)
       : username(un), trainID(tid), from(fr), to(t), departureDateMMDD(depDate),
-        leavingTimeMinutes(depTime), arrivalDateMMDD(arrDate),
-        arrivingTimeMinutes(arrTime), price(pr), num(n), status(st),
-        timestamp(ts) {}
+        price(pr), num(n), status(st), timestamp(ts) {}
 };
 
 class OrderManager {
@@ -55,10 +50,9 @@ public:
 };
 
 OrderManager::OrderManager(const std::string &orderFile,
-                               const std::string &queueFile)
+                           const std::string &queueFile)
     : orderDB(orderFile, string32::string32_MAX()),
-      pendingQueue(queueFile, std::make_pair(string32::string32_MAX(), INT_MAX)) {}
-
-
+      pendingQueue(queueFile,
+                   std::make_pair(string32::string32_MAX(), INT_MAX)) {}
 
 #endif // ORDER_MANAGER_HPP

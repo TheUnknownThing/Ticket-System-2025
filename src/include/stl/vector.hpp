@@ -277,6 +277,13 @@ class vector {
             new (container + i) T(other.container[i]);
         }
     }
+    vector(size_t n) : capacity(n), length(0) {
+        if (n == 0) {
+            container = nullptr;
+        } else {
+            container = static_cast<T *>(operator new[](capacity * sizeof(T)));
+        }
+    }
     /**
      * TODO Destructor
      */

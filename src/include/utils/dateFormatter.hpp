@@ -100,4 +100,22 @@ void addDurationToDateTime(int &date_mmdd, int &time_minutes_in_day,
   }
 }
 
+int calcDateDuration(int date1_mmdd, int date2_mmdd) {
+  if (date1_mmdd < 0 || date2_mmdd < 0)
+    return -1;
+  if (date1_mmdd / 100 < 1 || date1_mmdd / 100 > 12 ||
+      date1_mmdd % 100 < 1 || date1_mmdd % 100 > 31)
+    return -1;
+  if (date2_mmdd / 100 < 1 || date2_mmdd / 100 > 12 ||
+      date2_mmdd % 100 < 1 || date2_mmdd % 100 > 31)
+    return -1;
+
+  int month1 = date1_mmdd / 100;
+  int day1 = date1_mmdd % 100;
+  int month2 = date2_mmdd / 100;
+  int day2 = date2_mmdd % 100;
+
+  return (month2 - month1) * 30 + (day2 - day1);
+}
+
 #endif // DATE_FORMATTER_HPP
