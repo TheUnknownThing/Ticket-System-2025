@@ -5,6 +5,7 @@
 #include "stl/vector.hpp"
 #include "storage/bptStorage.hpp"
 #include "storage/cachedFileOperation.hpp"
+#include "storage/varLengthFileOperation.hpp"
 #include "utils/dateFormatter.hpp"
 #include "utils/splitString.hpp"
 #include "utils/string32.hpp"
@@ -31,11 +32,25 @@ private:
 
 public:
   StationBucketManager() = delete;
-  StationBucketManager(const std::string &stationFile);
+  StationBucketManager(const std::string &stationFile)
+      : stationBucket(stationFile + "_station") {}
   int addStations(
       vector<Station> &stations); // Pass by reference, num is stations.size()
   bool deleteStations(int bucketID, int num);
   vector<Station> queryStations(int bucketID, int num);
+};
+
+class TicketBucketManager {
+private:
+  VarLengthIntArrayFileOperation ticketBucket;
+
+public:
+  TicketBucketManager() = delete;
+  TicketBucketManager(const std::string &ticketFile)
+      : ticketBucket(ticketFile + "_ticket") {}
+  int addTickets(int bucketID, int num);
+  vector<int> queryTickets(int bucketID);
+  bool updateTickets(int bucketID, const vector<int> &tickets);
 };
 
 struct Train {
@@ -89,9 +104,6 @@ private:
   bool refundTicket(const string32 &trainID, const string32 &date_str, int num,
                     const string32 &from, const string32 &to);
 };
-
-StationBucketManager::StationBucketManager(const std::string &stationFile)
-    : stationBucket(stationFile + "_station") {}
 
 int StationBucketManager::addStations(vector<Station> &stations) {
   if (stations.empty())

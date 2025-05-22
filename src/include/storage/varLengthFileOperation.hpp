@@ -115,12 +115,32 @@ public:
     return result;
   }
 
+  vector<int> read(int index, int offset, int num_elements) {
+    file.seekg(index + offset * sizeof(int));
+    int data_buffer[num_elements];
+    file.read(reinterpret_cast<char *>(data_buffer),
+              static_cast<std::streamsize>(num_elements) * sizeof(int));
+    vector<int> result(num_elements);
+    for (int i = 0; i < num_elements; ++i) {
+      result[i] = data_buffer[i];
+    }
+    return result;
+  }
+
   void update(int index, const int *data_ptr) {
     file.seekg(index);
     int num_elements;
     file.read(reinterpret_cast<char *>(&num_elements), sizeof(int));
 
     file.seekp(index + sizeof(int));
+    if (data_ptr != nullptr) {
+      file.write(reinterpret_cast<const char *>(data_ptr),
+                 static_cast<std::streamsize>(num_elements) * sizeof(int));
+    }
+  }
+
+  void update(int index, int offset, int num_elements, const int *data_ptr) {
+    file.seekp(index + offset * sizeof(int));
     if (data_ptr != nullptr) {
       file.write(reinterpret_cast<const char *>(data_ptr),
                  static_cast<std::streamsize>(num_elements) * sizeof(int));
