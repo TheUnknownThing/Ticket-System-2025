@@ -48,8 +48,9 @@ public:
   TicketBucketManager() = delete;
   TicketBucketManager(const std::string &ticketFile)
       : ticketBucket(ticketFile + "_ticket") {}
-  int addTickets(int bucketID, int num);
+  int addTickets(int num, int init_value);
   vector<int> queryTickets(int bucketID);
+  vector<int> queryTickets(int bucketID, int offset, int num_elements);
   bool updateTickets(int bucketID, const vector<int> &tickets);
 };
 
@@ -58,6 +59,7 @@ struct Train {
   int stationNum;
   int stationBucketID;
   int seatNum;
+  int ticketBucketID;
   int saleDateStart; // MMDD format, 601 for 06-01
   int saleDateEnd;   // Also MMDD format
   int startTimeMinutes;
@@ -73,9 +75,10 @@ class TrainManager {
 private:
   BPTStorage<string32, Train> trainDB;
   StationBucketManager stationBucketManager;
+  TicketBucketManager ticketBucketManager;
 
 public:
-  TrainManager(const std::string &trainFile, const std::string &stationFile);
+  TrainManager(const std::string &trainFile);
 
   int addTrain(const string32 &trainID, int stationNum_val, int seatNum_val,
                const std::string &stations_str,      // -s ("s1|s2|s3")
@@ -102,7 +105,10 @@ private:
                                 const string32 &from, const string32 &to);
 
   bool refundTicket(const string32 &trainID, const string32 &date_str, int num,
-                    const string32 &from, const string32 &to);
+                    const int from, const int to);
+
+  vector<int> queryLeftSeats(const string32 &trainID, const string32 &date_str,
+                             const int from, const int to);
 };
 
 int StationBucketManager::addStations(vector<Station> &stations) {
@@ -132,10 +138,9 @@ vector<Station> StationBucketManager::queryStations(int bucketID, int num) {
   return stations_vec;
 }
 
-TrainManager::TrainManager(const std::string &trainFile,
-                           const std::string &stationFile)
+TrainManager::TrainManager(const std::string &trainFile)
     : trainDB(trainFile + "_train", string32::string32_MAX()),
-      stationBucketManager(stationFile) {}
+      stationBucketManager(trainFile), ticketBucketManager(trainFile) {}
 
 int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
                            int seatNum_val, const std::string &stations_str,
@@ -183,8 +188,6 @@ int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
   for (int i = 0; i < stationNum_val; ++i) {
     Station s;
     s.name = stationNames[i];
-    // TODO: NEED IMPLEMENTATION
-    // s.leftSeats = seatNum_val;
     s.index = i;
 
     if (i == 0) { // Start station
@@ -222,6 +225,7 @@ int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
   newTrain.stationNum = stationNum_val;
   newTrain.stationBucketID = bucketID;
   newTrain.seatNum = seatNum_val;
+  newTrain.ticketBucketID = -1; // add ticketbucketID in releaseTrain()
   newTrain.saleDateStart = saleDateStart;
   newTrain.saleDateEnd = saleDateEnd;
   newTrain.startTimeMinutes = trainStartTimeMinutes;
@@ -259,6 +263,11 @@ int TrainManager::releaseTrain(const string32 &trainID) {
     return -1;
   }
   trainToRelease.isReleased = true;
+  int ticketBucketID = ticketBucketManager.addTickets(
+      calcDateDuration(int date1_mmdd, int date2_mmdd) *
+          trainToRelease.stationNum,
+      trainToRelease.seatNum);
+  trainToRelease.ticketBucketID = ticketBucketID;
 
   trainDB.remove(trainID, trainToRelease);
   trainDB.insert(trainID, trainToRelease);
@@ -289,6 +298,9 @@ std::string TrainManager::queryTrain(const string32 &trainID,
       train.stationBucketID, train.stationNum);
 
   int cumulativePrice = 0;
+
+  vector<int> leftSeats =
+      queryLeftSeats(trainID, date_s32, 0, train.stationNum);
 
   for (int i = 0; i < train.stationNum; ++i) {
     const Station &s = stations[i];
@@ -332,9 +344,10 @@ std::string TrainManager::queryTrain(const string32 &trainID,
 
     if (s.isEnd) {
       oss << "x";
+    } else if (train.isReleased) {
+      oss << leftSeats[i];
     } else {
-      // TODO: NEED IMPLEMENTATION
-      // oss << s.leftSeats;
+      oss << train.seatNum;
     }
 
     if (!s.isEnd) {
@@ -342,6 +355,26 @@ std::string TrainManager::queryTrain(const string32 &trainID,
     }
   }
   return oss.str();
+}
+
+vector<int> TrainManager::queryLeftSeats(const string32 &trainID,
+                                         const string32 &date_str,
+                                         const int from, const int to) {
+  auto foundTrains = trainDB.find(trainID);
+  if (foundTrains.empty()) {
+    return vector<int>();
+  }
+  Train train = foundTrains[0];
+  if (!train.isReleased) {
+    return vector<int>();
+  }
+
+  int offset;
+  offset = calcDateDuration(int date1_mmdd, int date2_mmdd) * train.stationNum +
+           from; // NEED IMPLEMENTATION
+
+  return ticketBucketManager.queryTickets(
+      train.ticketBucketID, offset, to - from); // OR to - from + 1? FIX NEEDED.
 }
 
 #endif // TRAIN_MANAGER_HPP
