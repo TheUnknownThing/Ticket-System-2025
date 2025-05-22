@@ -107,7 +107,7 @@ private:
   bool refundTicket(const string32 &trainID, const string32 &date_str, int num,
                     const int from, const int to);
 
-  vector<int> queryLeftSeats(const string32 &trainID, const string32 &date_str,
+  vector<int> queryLeftSeats(const string32 &trainID, const int date,
                              const int from, const int to);
 };
 
@@ -264,9 +264,10 @@ int TrainManager::releaseTrain(const string32 &trainID) {
   }
   trainToRelease.isReleased = true;
   int ticketBucketID = ticketBucketManager.addTickets(
-      calcDateDuration(int date1_mmdd, int date2_mmdd) *
+      calcDateDuration(trainToRelease.saleDateStart,
+                       trainToRelease.saleDateEnd) *
           trainToRelease.stationNum,
-      trainToRelease.seatNum);
+      trainToRelease.seatNum); // NEED + 1? FIX LATER
   trainToRelease.ticketBucketID = ticketBucketID;
 
   trainDB.remove(trainID, trainToRelease);
@@ -300,7 +301,7 @@ std::string TrainManager::queryTrain(const string32 &trainID,
   int cumulativePrice = 0;
 
   vector<int> leftSeats =
-      queryLeftSeats(trainID, date_s32, 0, train.stationNum);
+      queryLeftSeats(trainID, queryDateMMDD, 0, train.stationNum);
 
   for (int i = 0; i < train.stationNum; ++i) {
     const Station &s = stations[i];
@@ -358,8 +359,8 @@ std::string TrainManager::queryTrain(const string32 &trainID,
 }
 
 vector<int> TrainManager::queryLeftSeats(const string32 &trainID,
-                                         const string32 &date_str,
-                                         const int from, const int to) {
+                                         const int date, const int from,
+                                         const int to) {
   auto foundTrains = trainDB.find(trainID);
   if (foundTrains.empty()) {
     return vector<int>();
@@ -370,8 +371,8 @@ vector<int> TrainManager::queryLeftSeats(const string32 &trainID,
   }
 
   int offset;
-  offset = calcDateDuration(int date1_mmdd, int date2_mmdd) * train.stationNum +
-           from; // NEED IMPLEMENTATION
+  offset = calcDateDuration(train.saleDateStart, date) * train.stationNum +
+           from; // NEED IMPLEMENTATION, FIX NEEDED.
 
   return ticketBucketManager.queryTickets(
       train.ticketBucketID, offset, to - from); // OR to - from + 1? FIX NEEDED.
