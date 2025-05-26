@@ -1,7 +1,6 @@
 #ifndef TRAIN_MANAGER_HPP
 #define TRAIN_MANAGER_HPP
 
-#include "services/orderManager.hpp"
 #include "stl/vector.hpp"
 #include "storage/bptStorage.hpp"
 #include "storage/cachedFileOperation.hpp"
@@ -70,6 +69,8 @@ struct Train {
 
   bool operator==(const Train &other) const { return trainID == other.trainID; }
 };
+
+class OrderManager;
 
 class TrainManager {
   friend class OrderManager;
