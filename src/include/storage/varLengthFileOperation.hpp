@@ -95,6 +95,25 @@ public:
     return index;
   }
 
+  int write(int init_value, int num_elements) {
+    if (num_elements <= 0) {
+      return -1; // Invalid number of elements
+    }
+
+    file.seekp(0, std::ios::end);
+    int index = file.tellp();
+    file.write(reinterpret_cast<const char *>(&num_elements), sizeof(int));
+    if (num_elements > 0) {
+      int data_buffer[num_elements];
+      for (int i = 0; i < num_elements; ++i) {
+        data_buffer[i] = init_value;
+      }
+      file.write(reinterpret_cast<const char *>(data_buffer),
+                 static_cast<std::streamsize>(num_elements) * sizeof(int));
+    }
+    return index;
+  }
+
   vector<int> read(int index) {
     file.seekg(index);
     int num_elements;
@@ -145,6 +164,25 @@ public:
       file.write(reinterpret_cast<const char *>(data_ptr),
                  static_cast<std::streamsize>(num_elements) * sizeof(int));
     }
+  }
+
+  void update(int index, const vector<int> &data) {
+    if (data.empty()) {
+      return;
+    }
+    file.seekp(index + sizeof(int));
+    file.write(reinterpret_cast<const char *>(data.data()),
+               static_cast<std::streamsize>(data.size()) * sizeof(int));
+  }
+
+  void update(int index, int offset, int num_elements,
+              const vector<int> &data) {
+    if (data.empty()) {
+      return;
+    }
+    file.seekp(index + offset * sizeof(int));
+    file.write(reinterpret_cast<const char *>(data.data()),
+               static_cast<std::streamsize>(num_elements) * sizeof(int));
   }
 
   void remove(int index) {

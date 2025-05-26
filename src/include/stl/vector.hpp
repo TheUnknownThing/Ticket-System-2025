@@ -284,6 +284,16 @@ class vector {
             container = static_cast<T *>(operator new[](capacity * sizeof(T)));
         }
     }
+    vector(size_t n, const T &value) : capacity(n), length(n) {
+        if (n == 0) {
+            container = nullptr;
+        } else {
+            container = static_cast<T *>(operator new[](capacity * sizeof(T)));
+            for (size_t i = 0; i < n; ++i) {
+                new (container + i) T(value);
+            }
+        }
+    }
     /**
      * TODO Destructor
      */
@@ -306,6 +316,28 @@ class vector {
         }
         return *this;
     }
+
+    void assign(size_t n, const T &value) {
+        clear();
+        capacity = n;
+        length = n;
+        if (n == 0) {
+            container = nullptr;
+        } else {
+            container = static_cast<T *>(operator new[](capacity * sizeof(T)));
+            for (size_t i = 0; i < n; ++i) {
+                new (container + i) T(value);
+            }
+        }
+    }
+
+    T* data() {
+        return container;
+    }
+    const T* data() const {
+        return container;
+    }
+
     /**
      * assigns specified element with bounds checking
      * throw index_out_of_bound if pos is not in [0, size)
