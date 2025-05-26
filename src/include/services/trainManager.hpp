@@ -372,7 +372,7 @@ vector<int> TrainManager::queryLeftSeats(const string32 &trainID,
 
   int offset;
   offset = calcDateDuration(train.saleDateStart, date) * train.stationNum +
-           from; // NEED IMPLEMENTATION, FIX NEEDED.
+           from; // FIX NEEDED.
 
   return ticketBucketManager.queryTickets(
       train.ticketBucketID, offset, to - from); // OR to - from + 1? FIX NEEDED.
