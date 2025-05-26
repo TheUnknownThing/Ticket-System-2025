@@ -415,37 +415,76 @@ std::pair<int, int> TrainManager::buyTicket(const string32 &trainID,
                                             int num,
                                             const string32 &from_station_name,
                                             const string32 &to_station_name) {
-  // 1. Find train
-  // 2. Validate date, from, to stations (get their indices)
-  // 3. Check seat availability using queryLeftSeats for all segments involved
-  // 4. If available, update ticket counts in TicketBucketManager
-  // 5. Calculate price
-  // 6. Return {total_price, departureDate.getDateMMDD()}
-
   auto foundTrains = trainDB.find(trainID);
   if (foundTrains.empty() || !foundTrains[0].isReleased)
     return {-1, -1};
   Train train = foundTrains[0];
-  // ... find from_idx, to_idx from names ...
-  // ... check seats ...
-  // ... update seats ...
-  // ... calculate price ...
-  return {-1, -1}; // Placeholder
+  
+  int from_idx = -1;
+  int to_idx = -1;
+  for (int i = 0; i < train.stationNum; ++i) {
+    if (train.stationBucketID == -1) {
+      return {-1, -1}; // No stations available
+    }
+    vector<Station> stations =
+        stationBucketManager.queryStations(train.stationBucketID, train.stationNum);
+    if (stations[i].name == from_station_name) {
+      from_idx = i;
+    }
+    if (stations[i].name == to_station_name) {
+      to_idx = i;
+    }
+  }
+  if (from_idx == -1 || to_idx == -1 || from_idx >= to_idx) {
+    return {-1, -1}; // Invalid stations
+  }
+  vector<int> leftSeats = queryLeftSeats(trainID, departureDate, from_idx,
+                                         to_idx);
+  for (int seat : leftSeats) {
+    if (seat < num) {
+      return {-1, -1}; // Not enough seats available
+    }
+  }
+  // we can buy the tickets
+  vector<int> updatedSeats = leftSeats;
+  for (int i = 0; i < leftSeats.size(); ++i) {
+    updatedSeats[i] -= num;
+  }
+  ticketBucketManager.updateTickets(train.ticketBucketID, from_idx,
+                                    to_idx - from_idx, updatedSeats);
+
+  int totalPrice = 0;
+  vector<Station> stations =
+      stationBucketManager.queryStations(train.stationBucketID, train.stationNum);
+  for (int i = from_idx; i < to_idx; ++i) {
+    totalPrice += stations[i].price;
+  }
+  
+  // Return total price and departure date in MMDD format
+  return {totalPrice, departureDate.getDateMMDD()};
 }
 
 bool TrainManager::refundTicket(const string32 &trainID,
                                 const DateTime &departureDate, int num,
                                 const int from_idx, const int to_idx) {
-  // 1. Find train
-  // 2. Validate
-  // 3. Update ticket counts (increase) in TicketBucketManager
 
   auto foundTrains = trainDB.find(trainID);
   if (foundTrains.empty() || !foundTrains[0].isReleased)
     return false;
   Train train = foundTrains[0];
-  // ... update seats ...
-  return false; // Placeholder
+  vector<int> leftSeats = queryLeftSeats(trainID, departureDate, from_idx,
+                                         to_idx);
+  if (leftSeats.empty() || from_idx < 0 || to_idx > train.stationNum ||
+      from_idx >= to_idx) {
+    return false;
+  }
+  for (int i = from_idx; i < to_idx; ++i) {
+    leftSeats[i] += num;
+  }
+  ticketBucketManager.updateTickets(train.ticketBucketID, from_idx,
+                                    to_idx - from_idx, leftSeats);
+  
+  return true;
 }
 
 vector<int> TrainManager::queryLeftSeats(const string32 &trainID, DateTime date,
