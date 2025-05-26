@@ -3,6 +3,7 @@
 
 #include "utils/dateFormatter.hpp"
 #include "utils/string32.hpp"
+#include <ostream>
 #include <string>
 
 class DateTime {
@@ -116,6 +117,10 @@ public:
   }
 
   bool isValid() const { return hasDate() || hasTime(); }
+
+  friend std::ostream &operator<<(std::ostream &os, const DateTime &dt) {
+    return os << dt.toString();
+  }
 };
 
 #endif // DATETIME_HPP

@@ -64,15 +64,11 @@ struct Order {
     os << "] ";
 
     os << order.trainID.toString() << " " << order.from_station_name.toString()
-       << " ";
+       << " " << order.departureDateTime.getDateString() << " "
+       << order.departureDateTime.getTimeString() << " -> ";
 
-    os << order.departureDateTime.getDateString() << " "
-       << order.departureDateTime.getTimeString();
-
-    os << " -> ";
-    os << order.to_station_name.toString() << " ";
-
-    os << order.departureDateTime.getDateString() << " "
+    os << order.to_station_name.toString() << " "
+       << order.departureDateTime.getDateString() << " "
        << order.departureDateTime.getTimeString();
 
     os << " " << order.price << " " << order.num;

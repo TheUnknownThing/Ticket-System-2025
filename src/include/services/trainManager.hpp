@@ -1,6 +1,7 @@
 #ifndef TRAIN_MANAGER_HPP
 #define TRAIN_MANAGER_HPP
 
+#include "stl/map.hpp"
 #include "stl/vector.hpp"
 #include "storage/bptStorage.hpp"
 #include "storage/cachedFileOperation.hpp"
@@ -13,6 +14,7 @@
 #include <sstream>
 #include <string>
 
+using sjtu::map;
 using sjtu::string32;
 using sjtu::vector;
 
@@ -77,6 +79,7 @@ class TrainManager {
 
 private:
   BPTStorage<string32, Train> trainDB;
+  BPTStorage<string32, string32> ticketLookupDB; // stationName -> trainID
   StationBucketManager stationBucketManager;
   TicketBucketManager ticketBucketManager;
 
@@ -96,6 +99,10 @@ public:
   int releaseTrain(const string32 &trainID);
   std::string queryTrain(const string32 &trainID,
                          const string32 &date_s32); // date_s32 is "mm-dd"
+
+  std::string queryTicket(const string32 &from, const string32 &to,
+                          const string32 &date_s32,
+                          const std::string &sortBy = "time");
 
 private:
   /**
@@ -169,6 +176,7 @@ void TicketBucketManager::updateTickets(int bucketID, int offset,
 
 TrainManager::TrainManager(const std::string &trainFile)
     : trainDB(trainFile + "_train", string32::string32_MAX()),
+      ticketLookupDB(trainFile + "_ticket_lookup", string32::string32_MAX()),
       stationBucketManager(trainFile), ticketBucketManager(trainFile) {}
 
 int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
@@ -303,8 +311,7 @@ int TrainManager::releaseTrain(const string32 &trainID) {
     return -1; // Already released
   }
 
-  Train oldTrainState = trainToRelease;
-
+  trainDB.remove(trainID, trainToRelease);
   trainToRelease.isReleased = true;
   int numSaleDays = calcDateDuration(trainToRelease.saleStartDate.getDateMMDD(),
                                      trainToRelease.saleEndDate.getDateMMDD()) +
@@ -316,9 +323,14 @@ int TrainManager::releaseTrain(const string32 &trainID) {
   if (ticket_bID == -1)
     return -1;
 
-  trainToRelease.ticketBucketID = ticket_bID;
+  auto stations = stationBucketManager.queryStations(
+      trainToRelease.stationBucketID, trainToRelease.stationNum);
+  for (int i = 0; i < trainToRelease.stationNum; ++i) {
+    // Update ticket lookup for each station
+    ticketLookupDB.insert(stations[i].name, trainToRelease.trainID);
+  }
 
-  trainDB.remove(trainID, oldTrainState);
+  trainToRelease.ticketBucketID = ticket_bID;
   trainDB.insert(trainID, trainToRelease);
 
   return 0;
@@ -408,6 +420,119 @@ std::string TrainManager::queryTrain(const string32 &trainID,
       oss << "\n";
     }
   }
+  return oss.str();
+}
+
+std::string TrainManager::queryTicket(const string32 &from, const string32 &to,
+                                      const string32 &date_s32,
+                                      const std::string &sortBy) {
+  // !important: FIX NEEDED:
+  // 1. The query date should be the date of the train's START station.
+
+  DateTime queryDate(date_s32); // Parse "mm-dd" string
+  if (!queryDate.hasDate()) {
+    return "-1"; // Invalid date format
+  }
+
+  auto fromTrains = ticketLookupDB.find(from);
+  auto toTrains = ticketLookupDB.find(to);
+
+  map<string32, int> trainCountMap; // trainID -> count of matching trains
+  vector<string32> matchingTrainIDs;
+  for (const auto &trainID : fromTrains) {
+    trainCountMap[trainID] = 1;
+  }
+  for (const auto &trainID : toTrains) {
+    if (trainCountMap.find(trainID) != trainCountMap.end()) {
+      matchingTrainIDs.push_back(trainID);
+    }
+  }
+
+  if (matchingTrainIDs.empty()) {
+    return "-1"; // No matching trains
+  }
+  std::ostringstream oss;
+  oss << matchingTrainIDs.size() << "\n";
+  vector<std::tuple<string32, int, string32, string32, int, DateTime, DateTime>>
+      trainDetails; // trainID, price, from, to, duration, departureDateTime,
+                    // endDateTime
+  for (const auto &trainID : matchingTrainIDs) {
+    auto foundTrains = trainDB.find(trainID);
+    if (foundTrains.empty() || !foundTrains[0].isReleased) {
+      continue; // Skip unreleased trains
+    }
+    Train train = foundTrains[0];
+
+    int from_idx = -1, to_idx = -1;
+    bool flag = false;
+    vector<Station> stations = stationBucketManager.queryStations(
+        train.stationBucketID, train.stationNum);
+    for (int i = 0; i < train.stationNum; ++i) {
+      if (stations[i].name == from) {
+        from_idx = i;
+        flag = true;
+      }
+      if (stations[i].name == to) {
+        to_idx = i;
+      }
+    }
+    if (from_idx == -1 || to_idx == -1 || from_idx >= to_idx) {
+      continue; // Invalid station names or indices
+    }
+
+    vector<int> leftSeats =
+        queryLeftSeats(trainID, queryDate, from_idx, to_idx);
+
+    for (int seat : leftSeats) {
+      if (seat <= 0) {
+        continue; // No available seats
+      }
+    }
+
+    int totalPrice = 0;
+    for (int i = from_idx; i < to_idx; ++i) {
+      totalPrice += stations[i].price;
+    }
+
+    int duration = stations[to_idx - 1].leavingTimeOffset -
+                   stations[from_idx].arrivalTimeOffset;
+
+    DateTime departureDateTime = queryDate;
+    departureDateTime.addDuration(stations[from_idx].arrivalTimeOffset);
+    DateTime endDateTime = queryDate;
+    endDateTime.addDuration(stations[to_idx - 1].leavingTimeOffset);
+
+    trainDetails.push_back(std::make_tuple(
+        train.trainID, totalPrice, stations[from_idx].name,
+        stations[to_idx].name, duration, departureDateTime, endDateTime));
+  }
+
+  if (sortBy == "price") {
+    std::sort(trainDetails.begin(), trainDetails.end(),
+              [](const auto &a, const auto &b) {
+                return std::get<1>(a) < std::get<1>(b); // Sort by price
+              });
+  } else if (sortBy == "time") {
+    std::sort(trainDetails.begin(), trainDetails.end(),
+              [](const auto &a, const auto &b) {
+                return std::get<4>(a) <
+                       std::get<4>(b); // Sort by departure date
+              });
+  }
+
+  for (int i = 0; i < trainDetails.size(); ++i) {
+    const auto &detail = trainDetails[i];
+    oss << std::get<0>(detail).toString() << " " // trainID
+        << std::get<2>(detail) << " "            // from
+        << std::get<5>(detail) << " ->"          // departureDateTime
+        << std::get<3>(detail) << " "            // to
+        << std::get<6>(detail) << " "            // endDateTime
+        << std::get<1>(detail);                  // price
+    if (i < trainDetails.size() - 1) {
+      oss << "\n";
+    }
+  }
+
   return oss.str();
 }
 
