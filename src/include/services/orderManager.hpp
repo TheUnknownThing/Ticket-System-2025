@@ -2,6 +2,7 @@
 #define ORDER_MANAGER_HPP
 
 #include "services/trainManager.hpp"
+#include "services/userManager.hpp"
 #include "stl/vector.hpp"
 #include "storage/bptStorage.hpp"
 #include "utils/dateTime.hpp"
@@ -87,8 +88,7 @@ private:
 
 public:
   OrderManager() = delete;
-  OrderManager(const std::string &orderFile, const std::string &queueFile,
-               TrainManager *tm);
+  OrderManager(const std::string &orderFile, TrainManager *tm);
 
   vector<Order> queryOrder(const string32 &username);
 
@@ -136,11 +136,9 @@ private:
                             int from_idx, int to_idx, int num_tickets);
 };
 
-OrderManager::OrderManager(const std::string &orderFile,
-                           const std::string &pendingQueueFile,
-                           TrainManager *tm)
-    : orderDB(orderFile, string32::string32_MAX()),
-      pendingQueue(pendingQueueFile,
+OrderManager::OrderManager(const std::string &orderFile, TrainManager *tm)
+    : orderDB(orderFile + "_order", string32::string32_MAX()),
+      pendingQueue(orderFile + "_pending",
                    std::make_pair(string32::string32_MAX(), INT_MAX)),
       trainManager_ptr(tm) {}
 
