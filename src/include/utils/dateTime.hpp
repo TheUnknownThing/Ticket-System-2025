@@ -118,6 +118,34 @@ public:
 
   bool isValid() const { return hasDate() || hasTime(); }
 
+  bool operator<(const DateTime &other) const {
+    if (date_mmdd != other.date_mmdd)
+      return date_mmdd < other.date_mmdd;
+    return time_minutes < other.time_minutes;
+  }
+
+  bool operator>(const DateTime &other) const {
+    if (date_mmdd != other.date_mmdd)
+      return date_mmdd > other.date_mmdd;
+    return time_minutes > other.time_minutes;
+  }
+
+  bool operator==(const DateTime &other) const {
+    return date_mmdd == other.date_mmdd && time_minutes == other.time_minutes;
+  }
+
+  bool operator!=(const DateTime &other) const {
+    return !(*this == other);
+  }
+
+  bool operator<=(const DateTime &other) const {
+    return *this < other || *this == other;
+  }
+
+  bool operator>=(const DateTime &other) const {
+    return *this > other || *this == other;
+  }
+
   friend std::ostream &operator<<(std::ostream &os, const DateTime &dt) {
     return os << dt.toString();
   }
