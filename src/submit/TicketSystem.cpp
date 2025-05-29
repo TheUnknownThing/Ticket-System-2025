@@ -102,8 +102,9 @@ int main() {
         } else {
           auto result = orderManager.queryOrder(params['u']);
           if (result.empty()) {
-            std::cout << "-1";
+            std::cout << "0";
           } else {
+            std::cout << result.size() << "\n";
             for (int i = 0; i < result.size(); ++i) {
               std::cout << result[i];
               if (i < result.size() - 1) {
