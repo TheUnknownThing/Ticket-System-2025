@@ -72,9 +72,7 @@ struct Train {
 
   bool operator==(const Train &other) const { return trainID == other.trainID; }
 
-  bool operator<=(const Train &other) const {
-    return trainID <= other.trainID;
-  }
+  bool operator<=(const Train &other) const { return trainID <= other.trainID; }
 };
 
 struct TicketCandidate {
@@ -683,7 +681,8 @@ std::string TrainManager::queryTransfer(const string32 &from,
           seatsAvailable_train1_leg);
 
       vector<TicketCandidate> secondLegCandidates =
-          querySingle(transferStation.name, to, arrivalAtTransferDateTime_train1_leg, sortBy);
+          querySingle(transferStation.name, to,
+                      arrivalAtTransferDateTime_train1_leg, sortBy);
 
       for (const auto &ticket2 : secondLegCandidates) {
         if (ticket2.trainID == train1_obj.trainID) {
@@ -765,23 +764,30 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
                         int num, const string32 &from_station_name,
                         const string32 &to_station_name) {
   // !important: need fix here.
-  // 1. Transform depatureDate to actual departure date of the TRAIN.
-  // 2. Return the departure date of TRAIN.
-  // 3. If NUM exceeds the number of seats available, return false.
+  // 1. Transform depatureDate to actual departure date of the TRAIN. // FIXED
+  // 2. Return the departure date of TRAIN. // FIXED
+  // 3. If NUM exceeds the number of seats available, return false. // FIXED
+
+  DateTime queryDate = departureDate;
 
   auto foundTrains = trainDB.find(trainID);
   if (foundTrains.empty() || !foundTrains[0].isReleased)
     return {-1, -1, false, -1, -1};
   Train train = foundTrains[0];
 
+  if (num > train.seatNum) {
+    return {-1, -1, false, -1, -1}; // Not enough seats available
+  }
+
   int from_idx = -1;
   int to_idx = -1;
+
+  vector<Station> stations = stationBucketManager.queryStations(
+      train.stationBucketID, train.stationNum);
   for (int i = 0; i < train.stationNum; ++i) {
     if (train.stationBucketID == -1) {
       return {-1, -1, false, -1, -1}; // No stations available
     }
-    vector<Station> stations = stationBucketManager.queryStations(
-        train.stationBucketID, train.stationNum);
     if (stations[i].name == from_station_name) {
       from_idx = i;
     }
@@ -792,8 +798,17 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
   if (from_idx == -1 || to_idx == -1 || from_idx >= to_idx) {
     return {-1, -1, false, -1, -1}; // Invalid station names or indices
   }
+
+  queryDate += train.startTime;
+  queryDate.minusDuration(
+      stations[from_idx].arrivalTimeOffset); // Adjust to train's start time
+  if (queryDate.getDateMMDD() < train.saleStartDate.getDateMMDD() ||
+      queryDate.getDateMMDD() > train.saleEndDate.getDateMMDD()) {
+    return {-1, -1, false, -1, -1}; // Not on sale on this date
+  }
+
   vector<int> leftSeats =
-      queryLeftSeats(trainID, departureDate, from_idx, to_idx);
+      queryLeftSeats(trainID, queryDate, from_idx, to_idx);
   bool flag = true;
   for (int seat : leftSeats) {
     if (seat < num) {
@@ -810,15 +825,12 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
                                       to_idx - from_idx, updatedSeats);
   }
 
-  vector<Station> stations = stationBucketManager.queryStations(
-      train.stationBucketID, train.stationNum);
-
   int totalPrice = 0;
   for (int i = from_idx; i < to_idx; ++i) {
     totalPrice += stations[i].price;
   }
 
-  return {totalPrice, departureDate.getDateMMDD(), flag, from_idx, to_idx};
+  return {totalPrice, queryDate.getDateMMDD(), flag, from_idx, to_idx};
 }
 
 bool TrainManager::refundTicket(const string32 &trainID,
