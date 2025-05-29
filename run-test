@@ -35,6 +35,7 @@ if [ "$clear_logs" = true ]; then
     rm -f test_logs/test-*.log
     rm -f test_logs/diff-*.log
     rm -f test_logs/input-*.in
+    rm -f *_node *_data
   fi
 fi
 

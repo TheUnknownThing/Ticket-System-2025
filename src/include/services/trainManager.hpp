@@ -522,9 +522,10 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
       continue; // Invalid station names or indices
     }
 
-    queryDate += train.startTime;
+    queryDate -= train.startTime;
     queryDate.minusDuration(
-        stations[from_idx].arrivalTimeOffset); // Adjust to train's start time
+        stations[from_idx].leavingTimeOffset); // Adjust to train's start time
+    queryDate.addDuration(1440);
     if (queryDate.getDateMMDD() < train.saleStartDate.getDateMMDD() ||
         queryDate.getDateMMDD() > train.saleEndDate.getDateMMDD()) {
       continue; // Not on sale on this date
@@ -538,16 +539,18 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
     }
 
     int totalPrice = 0;
-    for (int i = from_idx; i < to_idx; ++i) {
+    for (int i = from_idx + 1; i <= to_idx; ++i) {
       totalPrice += stations[i].price;
     }
 
     int duration = stations[to_idx].arrivalTimeOffset -
                    stations[from_idx].leavingTimeOffset;
 
-    DateTime departureDateTime(queryDate.getDateMMDD(), train.startTime.getTimeMinutes());
+    DateTime departureDateTime(queryDate.getDateMMDD(),
+                               train.startTime.getTimeMinutes());
     departureDateTime.addDuration(stations[from_idx].leavingTimeOffset);
-    DateTime endDateTime(queryDate.getDateMMDD(), train.startTime.getTimeMinutes());
+    DateTime endDateTime(queryDate.getDateMMDD(),
+                         train.startTime.getTimeMinutes());
     endDateTime.addDuration(stations[to_idx].arrivalTimeOffset);
 
     // trainDetails.push_back(
@@ -650,9 +653,10 @@ std::string TrainManager::queryTransfer(const string32 &from,
         price_train1_leg += stations_train1[k].price;
       }
 
-      queryDate += train1_obj.startTime;
+      queryDate -= train1_obj.startTime;
       queryDate.minusDuration(
-          stations_train1[from_idx_train1].arrivalTimeOffset);
+          stations_train1[from_idx_train1].leavingTimeOffset);
+      queryDate.addDuration(1440);
       if (queryDate.getDateMMDD() < train1_obj.saleStartDate.getDateMMDD() ||
           queryDate.getDateMMDD() > train1_obj.saleEndDate.getDateMMDD()) {
         continue; // Not on sale on this date
@@ -660,11 +664,13 @@ std::string TrainManager::queryTransfer(const string32 &from,
 
       // Now queryDate is the actual departure date of train1
 
-      DateTime departureDateTime_train1_leg(queryDate.getDateMMDD(), train1_obj.startTime.getTimeMinutes());
+      DateTime departureDateTime_train1_leg(
+          queryDate.getDateMMDD(), train1_obj.startTime.getTimeMinutes());
       departureDateTime_train1_leg.addDuration(
           stations_train1[from_idx_train1].leavingTimeOffset);
 
-      DateTime arrivalAtTransferDateTime_train1_leg(queryDate.getDateMMDD(), train1_obj.startTime.getTimeMinutes());
+      DateTime arrivalAtTransferDateTime_train1_leg(
+          queryDate.getDateMMDD(), train1_obj.startTime.getTimeMinutes());
       arrivalAtTransferDateTime_train1_leg.addDuration(
           stations_train1[transfer_station_idx_train1].arrivalTimeOffset);
 
@@ -809,9 +815,10 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
     return {-1, -1, false, -1, -1}; // Invalid station names or indices
   }
 
-  queryDate += train.startTime;
+  queryDate -= train.startTime;
   queryDate.minusDuration(
-      stations[from_idx].arrivalTimeOffset); // Adjust to train's start time
+      stations[from_idx].leavingTimeOffset); // Adjust to train's start time
+  queryDate.addDuration(1440);
   if (queryDate.getDateMMDD() < train.saleStartDate.getDateMMDD() ||
       queryDate.getDateMMDD() > train.saleEndDate.getDateMMDD()) {
     return {-1, -1, false, -1, -1}; // Not on sale on this date
@@ -835,9 +842,11 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
   }
 
   int totalPrice = 0;
-  for (int i = from_idx; i < to_idx; ++i) {
+  for (int i = from_idx + 1; i <= to_idx; ++i) {
     totalPrice += stations[i].price;
   }
+
+  totalPrice *= num; // Total price for the number of tickets
 
   return {totalPrice, queryDate.getDateMMDD(), flag, from_idx, to_idx};
 }
