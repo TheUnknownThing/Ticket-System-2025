@@ -182,7 +182,6 @@ BPTStorage<Key, Value, NODE_SIZE, BLOCK_SIZE>::find(Key key) {
       }
     }
   }
-
   return sort_result(result);
 }
 

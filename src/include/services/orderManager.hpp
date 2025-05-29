@@ -44,6 +44,10 @@ struct Order {
     return timestamp < other.timestamp;
   }
 
+  bool operator<=(const Order &other) const {
+    return timestamp <= other.timestamp;
+  }
+
   bool operator==(const Order &other) const {
     return username == other.username && trainID == other.trainID &&
            timestamp == other.timestamp; // faster, do not compare all fields

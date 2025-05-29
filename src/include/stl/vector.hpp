@@ -149,6 +149,43 @@ class vector {
         bool operator!=(const const_iterator &rhs) const {
             return !(*this == rhs);
         }
+
+        bool operator<(const iterator &rhs) const {
+            if (this->vec == rhs.vec && this->index < rhs.index) {
+                return true;
+            }
+            return false;
+        }
+        bool operator<(const const_iterator &rhs) const {
+            if (this->vec == rhs.vec && this->index < rhs.index) {
+                return true;
+            }
+            return false;
+        }
+        bool operator>(const iterator &rhs) const {
+            if (this->vec == rhs.vec && this->index > rhs.index) {
+                return true;
+            }
+            return false;
+        }
+        bool operator>(const const_iterator &rhs) const {
+            if (this->vec == rhs.vec && this->index > rhs.index) {
+                return true;
+            }
+            return false;
+        }
+        bool operator<=(const iterator &rhs) const {
+            return !(*this > rhs);
+        }
+        bool operator<=(const const_iterator &rhs) const {
+            return !(*this > rhs);
+        }
+        bool operator>=(const iterator &rhs) const {
+            return !(*this < rhs);
+        }
+        bool operator>=(const const_iterator &rhs) const {
+            return !(*this < rhs);
+        }
     };
     /**
      * TODO
@@ -261,6 +298,37 @@ class vector {
         }
         bool operator!=(const const_iterator &rhs) const {
             return !(*this == rhs);
+        }
+
+        bool operator<(const iterator &rhs) const {
+            if (this->vec == rhs.vec && this->index < rhs.index) {
+                return true;
+            }
+            return false;
+        }
+        bool operator<(const const_iterator &rhs) const {
+            if (this->vec == rhs.vec && this->index < rhs.index) {
+                return true;
+            }
+            return false;
+        }
+        bool operator>(const iterator &rhs) const {
+            if (this->vec == rhs.vec && this->index > rhs.index) {
+                return true;
+            }
+            return false;
+        }
+        bool operator>(const const_iterator &rhs) const {
+            if (this->vec == rhs.vec && this->index > rhs.index) {
+                return true;
+            }
+            return false;
+        }
+        bool operator<=(const iterator &rhs) const {
+            return !(*this > rhs);
+        }
+        bool operator<=(const const_iterator &rhs) const {
+            return !(*this > rhs);
         }
     };
     /**

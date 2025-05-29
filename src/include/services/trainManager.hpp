@@ -71,6 +71,10 @@ struct Train {
   bool isReleased;
 
   bool operator==(const Train &other) const { return trainID == other.trainID; }
+
+  bool operator<=(const Train &other) const {
+    return trainID <= other.trainID;
+  }
 };
 
 struct TicketCandidate {
