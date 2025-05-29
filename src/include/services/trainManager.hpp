@@ -157,7 +157,7 @@ private:
                              const int to_station_idx);
 
   vector<TicketCandidate> querySingle(const string32 &from, const string32 &to,
-                                      const string32 &date_s32,
+                                      const DateTime &date,
                                       const std::string &sortBy = "time");
 };
 
@@ -463,12 +463,12 @@ std::string TrainManager::queryTrain(const string32 &trainID,
 
 vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
                                                   const string32 &to,
-                                                  const string32 &date_s32,
+                                                  const DateTime &date,
                                                   const std::string &sortBy) {
   // !important: FIX NEEDED:
   // 1. The query date should be the date of the train's START station. // FIXED
 
-  DateTime queryDate(date_s32);
+  DateTime queryDate = date;
 
   auto fromTrains = ticketLookupDB.find(from);
   auto toTrains = ticketLookupDB.find(to);
@@ -518,6 +518,10 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
     queryDate += train.startTime;
     queryDate.minusDuration(
         stations[from_idx].arrivalTimeOffset); // Adjust to train's start time
+    if (queryDate.getDateMMDD() < train.saleStartDate.getDateMMDD() ||
+        queryDate.getDateMMDD() > train.saleEndDate.getDateMMDD()) {
+      continue; // Not on sale on this date
+    }
 
     vector<int> leftSeats =
         queryLeftSeats(trainID, queryDate, from_idx, to_idx);
@@ -531,13 +535,13 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
       totalPrice += stations[i].price;
     }
 
-    int duration = stations[to_idx - 1].leavingTimeOffset -
-                   stations[from_idx].arrivalTimeOffset;
+    int duration = stations[to_idx - 1].arrivalTimeOffset -
+                   stations[from_idx].leavingTimeOffset;
 
     DateTime departureDateTime = queryDate;
-    departureDateTime.addDuration(stations[from_idx].arrivalTimeOffset);
+    departureDateTime.addDuration(stations[from_idx].leavingTimeOffset);
     DateTime endDateTime = queryDate;
-    endDateTime.addDuration(stations[to_idx - 1].leavingTimeOffset);
+    endDateTime.addDuration(stations[to_idx - 1].arrivalTimeOffset);
 
     // trainDetails.push_back(
     //     std::make_tuple(train.trainID, totalPrice, stations[from_idx].name,
@@ -566,7 +570,8 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
 std::string TrainManager::queryTicket(const string32 &from, const string32 &to,
                                       const string32 &date_s32,
                                       const std::string &sortBy) {
-  auto trainDetails = querySingle(from, to, date_s32, sortBy);
+  DateTime date(date_s32);
+  auto trainDetails = querySingle(from, to, date, sortBy);
   std::ostringstream oss;
   for (int i = 0; i < trainDetails.size(); ++i) {
     const auto &detail = trainDetails[i];
@@ -584,9 +589,6 @@ std::string TrainManager::queryTransfer(const string32 &from,
                                         const string32 &date_s32,
                                         const std::string &sortBy) {
   DateTime queryDate(date_s32); // Parse "mm-dd" string
-  if (!queryDate.hasDate()) {
-    return "-1"; // Invalid date format
-  }
 
   TicketCandidate bestLeg1Candidate;
   TicketCandidate bestLeg2Candidate;
@@ -636,17 +638,27 @@ std::string TrainManager::queryTransfer(const string32 &from,
         price_train1_leg += stations_train1[k].price;
       }
 
+      queryDate += train1_obj.startTime;
+      queryDate.minusDuration(
+          stations_train1[from_idx_train1].arrivalTimeOffset);
+      if (queryDate.getDateMMDD() < train1_obj.saleStartDate.getDateMMDD() ||
+          queryDate.getDateMMDD() > train1_obj.saleEndDate.getDateMMDD()) {
+        continue; // Not on sale on this date
+      }
+
+      // Now queryDate is the actual departure date of train1
+
       DateTime departureDateTime_train1_leg = queryDate;
       departureDateTime_train1_leg.addDuration(
-          stations_train1[from_idx_train1].arrivalTimeOffset);
+          stations_train1[from_idx_train1].leavingTimeOffset);
 
       DateTime arrivalAtTransferDateTime_train1_leg = queryDate;
       arrivalAtTransferDateTime_train1_leg.addDuration(
-          stations_train1[transfer_station_idx_train1 - 1].leavingTimeOffset);
+          stations_train1[transfer_station_idx_train1 - 1].arrivalTimeOffset);
 
       int duration_train1_leg =
-          stations_train1[transfer_station_idx_train1 - 1].leavingTimeOffset -
-          stations_train1[from_idx_train1].arrivalTimeOffset;
+          stations_train1[transfer_station_idx_train1 - 1].arrivalTimeOffset -
+          stations_train1[from_idx_train1].leavingTimeOffset;
 
       vector<int> leftSeats_train1_vec = queryLeftSeats(
           train1ID, queryDate, from_idx_train1, transfer_station_idx_train1);
@@ -667,7 +679,7 @@ std::string TrainManager::queryTransfer(const string32 &from,
           seatsAvailable_train1_leg);
 
       vector<TicketCandidate> secondLegCandidates =
-          querySingle(transferStation.name, to, date_s32, sortBy);
+          querySingle(transferStation.name, to, arrivalAtTransferDateTime_train1_leg, sortBy);
 
       for (const auto &ticket2 : secondLegCandidates) {
         if (ticket2.trainID == train1_obj.trainID) {
