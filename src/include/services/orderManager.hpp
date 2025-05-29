@@ -41,11 +41,11 @@ struct Order {
         num(n), status(st), timestamp(ts) {}
 
   bool operator<(const Order &other) const {
-    return timestamp < other.timestamp;
+    return timestamp > other.timestamp;
   }
 
   bool operator<=(const Order &other) const {
-    return timestamp <= other.timestamp;
+    return timestamp >= other.timestamp;
   }
 
   bool operator==(const Order &other) const {
