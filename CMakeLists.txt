@@ -31,8 +31,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Clean up data files command
 add_custom_target(clean_data_files
-    COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_BINARY_DIR}/data_data ${CMAKE_BINARY_DIR}/data_node
-    COMMENT "Removing data_data and data_node files"
+    COMMAND ${CMAKE_COMMAND} -E rm -f ${CMAKE_BINARY_DIR}/*_data ${CMAKE_BINARY_DIR}/*_node
+    COMMENT "Removing files ending with _data and _node"
 )
 
 # add_executable(code ${CMAKE_CURRENT_SOURCE_DIR}/src/submit/BPlusTree.cpp)

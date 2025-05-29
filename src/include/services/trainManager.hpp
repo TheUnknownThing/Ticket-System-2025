@@ -36,7 +36,9 @@ private:
 public:
   StationBucketManager() = delete;
   StationBucketManager(const std::string &stationFile)
-      : stationBucket(stationFile + "_station") {}
+      : stationBucket(stationFile + "_station") {
+    stationBucket.initialise();
+  }
   int addStations(vector<Station> &stations);
   bool deleteStations(int bucketID, int num);
   vector<Station> queryStations(int bucketID, int num);
@@ -49,7 +51,9 @@ private:
 public:
   TicketBucketManager() = delete;
   TicketBucketManager(const std::string &ticketFile)
-      : ticketBucket(ticketFile + "_ticket") {}
+      : ticketBucket(ticketFile + "_ticket") {
+    ticketBucket.initialise();
+  }
   int addTickets(int num_days, int num_stations_per_day, int init_value);
   vector<int> queryTickets(int bucketID);
   vector<int> queryTickets(int bucketID, int offset, int num_elements);
@@ -217,7 +221,8 @@ void TicketBucketManager::updateTickets(int bucketID, int offset,
 TrainManager::TrainManager(const std::string &trainFile)
     : trainDB(trainFile + "_train", string32::string32_MAX()),
       ticketLookupDB(trainFile + "_ticket_lookup", string32::string32_MAX()),
-      stationBucketManager(trainFile), ticketBucketManager(trainFile) {}
+      stationBucketManager(trainFile + "_station_bucket"),
+      ticketBucketManager(trainFile + "ticket_bucket") {}
 
 int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
                            int seatNum_val, const std::string &stations_str,
@@ -807,8 +812,7 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
     return {-1, -1, false, -1, -1}; // Not on sale on this date
   }
 
-  vector<int> leftSeats =
-      queryLeftSeats(trainID, queryDate, from_idx, to_idx);
+  vector<int> leftSeats = queryLeftSeats(trainID, queryDate, from_idx, to_idx);
   bool flag = true;
   for (int seat : leftSeats) {
     if (seat < num) {

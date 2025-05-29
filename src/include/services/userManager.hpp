@@ -62,9 +62,10 @@ public:
 
   void clean();
   void clearLoggedInUsers();
+  
+  bool isLoggedIn(const string32 &username) const;
 
 private:
-  bool isLoggedIn(const string32 &username) const;
   int getPrivilege(const string32 &username) const;
 
   bool isFirstUser() const;

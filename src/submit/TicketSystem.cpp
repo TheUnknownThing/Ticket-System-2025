@@ -15,8 +15,10 @@ using sjtu::map;
 #define DEBUG_CMD(cmd)
 #endif
 
-
 int main() {
+  // use test/TicketSystem/2.in as input
+  freopen("../test/TicketSystem/2.in", "r", stdin);
+
   UserManager userManager("users");
   TrainManager trainManager("trains");
   OrderManager orderManager("orders", &trainManager);
@@ -39,11 +41,12 @@ int main() {
     try {
       if (command == "add_user") {
         std::cout << (userManager.addUser(params['c'], params['u'], params['p'],
-                                         params['n'], params['m'],
-                                         std::stoi(params['g'])) ? "0" : "-1");
+                                          params['n'], params['m'],
+                                          std::stoi(params['g']))
+                          ? "0"
+                          : "-1");
       } else if (command == "login") {
-        std::cout << (userManager.login(params['u'], params['p']) ? "0" : "-1") 
-                 ;
+        std::cout << (userManager.login(params['u'], params['p']) ? "0" : "-1");
       } else if (command == "logout") {
         std::cout << (userManager.logout(params['u']) ? "0" : "-1");
       } else if (command == "query_profile") {
@@ -55,6 +58,12 @@ int main() {
             params.count('m') ? params['m'] : "",
             params.count('g') ? std::stoi(params['g']) : -1);
       } else if (command == "add_train") {
+        // if (params['i'] == "LeavesofGrass") {
+        //   std::cout << "DEBUG OUTPUT:" << params['i'] << " " << params['s'] << " "
+        //             << params['p'] << " " << params['x'] << " "
+        //             << params['t'] << " " << params['o'] << " "
+        //             << params['d'] << " " << params['y'][0] << "\n";
+        // }
         std::cout << trainManager.addTrain(
             params['i'], std::stoi(params['n']), std::stoi(params['m']),
             params['s'], params['p'], params['x'], params['t'], params['o'],
@@ -69,28 +78,37 @@ int main() {
       } else if (command == "query_ticket") {
         std::string sortBy = params.count('p') ? params['p'] : "time";
         auto result = trainManager.queryTicket(params['s'], params['t'],
-                                                      params['d'], sortBy);
+                                               params['d'], sortBy);
         std::cout << (result.empty() ? "0" : result);
       } else if (command == "query_transfer") {
         std::string sortBy = params.count('p') ? params['p'] : "time";
-        auto result = trainManager.queryTransfer(
-            params['s'], params['t'], params['d'], sortBy);
+        auto result = trainManager.queryTransfer(params['s'], params['t'],
+                                                 params['d'], sortBy);
         std::cout << (result.empty() ? "0" : result);
       } else if (command == "buy_ticket") {
         bool queue = params.count('q') && params['q'] == "true";
-        auto result = orderManager.buyTicket(
-            params['u'], params['i'], params['d'], std::stoi(params['n']),
-            params['f'], params['t'], queue, timestamp);
-        std::cout << result;
-      } else if (command == "query_order") {
-        auto result = orderManager.queryOrder(params['u']);
-        if (result.empty()) {
-          std::cout << "-1";
+        if (userManager.isLoggedIn(params['u']) == false) {
+          std::cout << "-1"; // User not logged in
         } else {
-          for (int i = 0; i < result.size(); ++i) {
-            std::cout << result[i];
-            if (i < result.size() - 1) {
-              std::cout << "\n";
+          auto result = orderManager.buyTicket(
+              params['u'], params['i'], params['d'], std::stoi(params['n']),
+              params['f'], params['t'], queue, timestamp);
+          std::cout << result;
+        }
+      } else if (command == "query_order") {
+        if (!userManager.isLoggedIn(params['u'])) {
+          std::cout << "-1"; // User not logged in
+          continue;
+        } else {
+          auto result = orderManager.queryOrder(params['u']);
+          if (result.empty()) {
+            std::cout << "-1";
+          } else {
+            for (int i = 0; i < result.size(); ++i) {
+              std::cout << result[i];
+              if (i < result.size() - 1) {
+                std::cout << "\n";
+              }
             }
           }
         }
@@ -113,7 +131,7 @@ int main() {
       std::cout << "-1"; // Exception occurred
     }
 
-    std::cout  << "\n";
+    std::cout << "\n";
   }
   return 0;
 }

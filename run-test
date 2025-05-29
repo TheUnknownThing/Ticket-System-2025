@@ -33,6 +33,8 @@ if [ "$clear_logs" = true ]; then
   if [ -d "test_logs" ]; then
     echo "Clearing old test logs..."
     rm -f test_logs/test-*.log
+    rm -f test_logs/diff-*.log
+    rm -f test_logs/input-*.in
   fi
 fi
 
@@ -78,6 +80,27 @@ function tmpdir () {
   fi
 }
 
+function save_diff_result () {
+  local testcase_group="$1"
+  local test_num="$2"
+  local difffile="$3"
+  local timestamp="$(date '+%s')"
+  local diff_backup="diff-$testcase_group-$test_num-$timestamp.log"
+  
+  cp "$difffile" "$cwd/test_logs/$diff_backup"
+  echo "Diff result saved to $diff_backup"
+}
+
+function save_input_file () {
+  local testcase_group="$1"
+  local test_num="$2"
+  local timestamp="$(date '+%s')"
+  local input_backup="input-$testcase_group-$test_num-$timestamp.in"
+  
+  cp "$basedir/$test_num.in" "$cwd/test_logs/$input_backup"
+  echo "Input file saved to $input_backup"
+}
+
 testdir="$(tmpdir)"
 cp "build/$exename" "$testdir/"
 exe="$testdir/$exename"
@@ -98,6 +121,8 @@ for i in $list; do
     cat "$difffile" | head -5
     backup="test-$testcase_group-$i-$(date '+%s').log"
     cp "$outfile" "$cwd/test_logs/$backup"
+    save_diff_result "$testcase_group" "$i" "$difffile"
+    save_input_file "$testcase_group" "$i"
     echo "Test failed on input #$i."
     echo "Output saved to $backup"
     exit 1
