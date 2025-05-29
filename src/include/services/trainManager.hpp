@@ -466,12 +466,9 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
                                                   const string32 &date_s32,
                                                   const std::string &sortBy) {
   // !important: FIX NEEDED:
-  // 1. The query date should be the date of the train's START station.
+  // 1. The query date should be the date of the train's START station. // FIXED
 
-  DateTime queryDate(date_s32); // Parse "mm-dd" string
-  if (!queryDate.hasDate()) {
-    return vector<TicketCandidate>(); // Invalid date format
-  }
+  DateTime queryDate(date_s32);
 
   auto fromTrains = ticketLookupDB.find(from);
   auto toTrains = ticketLookupDB.find(to);
@@ -517,6 +514,10 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
     if (from_idx == -1 || to_idx == -1 || from_idx >= to_idx) {
       continue; // Invalid station names or indices
     }
+
+    queryDate += train.startTime;
+    queryDate.minusDuration(
+        stations[from_idx].arrivalTimeOffset); // Adjust to train's start time
 
     vector<int> leftSeats =
         queryLeftSeats(trainID, queryDate, from_idx, to_idx);
@@ -730,7 +731,6 @@ std::string TrainManager::queryTransfer(const string32 &from,
   }
 
   std::ostringstream oss;
-  // Assumes operator<<(ostream&, const TicketCandidate&) is defined
   oss << bestLeg1Candidate << "\n" << bestLeg2Candidate;
   return oss.str();
 }

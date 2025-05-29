@@ -116,6 +116,17 @@ public:
     }
   }
 
+  void minusDuration(int duration_minutes) {
+    if (hasDate() && hasTime()) {
+      minusDurationFromDateTime(date_mmdd, time_minutes, duration_minutes);
+    } else if (hasTime()) {
+      time_minutes -= duration_minutes;
+      if (time_minutes < 0) {
+        time_minutes += 1440; // Wrap around
+      }
+    }
+  }
+
   bool isValid() const { return hasDate() || hasTime(); }
 
   bool operator<(const DateTime &other) const {
@@ -148,6 +159,44 @@ public:
 
   friend std::ostream &operator<<(std::ostream &os, const DateTime &dt) {
     return os << dt.toString();
+  }
+
+  DateTime operator+(const DateTime &other) const {
+    DateTime result = *this;
+    if (result.hasDate() && other.hasDate()) {
+      result.date_mmdd = other.date_mmdd;
+    }
+    if (result.hasTime() && other.hasTime()) {
+      result.time_minutes += other.time_minutes;
+      if (result.time_minutes >= 1440) {
+        result.time_minutes %= 1440;
+      }
+    }
+    return result;
+  }
+
+  DateTime operator-(const DateTime &other) const {
+    DateTime result = *this;
+    if (result.hasDate() && other.hasDate()) {
+      result.date_mmdd = other.date_mmdd;
+    }
+    if (result.hasTime() && other.hasTime()) {
+      result.time_minutes -= other.time_minutes;
+      if (result.time_minutes < 0) {
+        result.time_minutes += 1440; // Wrap around
+      }
+    }
+    return result;
+  }
+
+  DateTime operator+=(const DateTime &other) {
+    *this = *this + other;
+    return *this;
+  }
+
+  DateTime operator-=(const DateTime &other) {
+    *this = *this - other;
+    return *this;
   }
 };
 

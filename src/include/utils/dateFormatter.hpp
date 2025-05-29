@@ -100,6 +100,30 @@ void addDurationToDateTime(int &date_mmdd, int &time_minutes_in_day,
   }
 }
 
+void minusDurationFromDateTime(int &date_mmdd, int &time_minutes_in_day,
+                                int duration_minutes) {
+  if (duration_minutes < 0)
+    return;
+
+  time_minutes_in_day -= duration_minutes;
+  while (time_minutes_in_day < 0) {
+    time_minutes_in_day += 1440; // 1440 minutes in a day
+    int month = date_mmdd / 100;
+    int day = date_mmdd % 100;
+
+    day--;
+    if (day < 1) {
+      month--;
+      if (month < 6 || month > 8 || DAYS_IN_MONTH[month] == 0) {
+        date_mmdd = -1; // Mark as invalid
+        return;
+      }
+      day = DAYS_IN_MONTH[month];
+    }
+    date_mmdd = month * 100 + day;
+  }
+}
+
 int calcDateDuration(int date1_mmdd, int date2_mmdd) {
   if (date1_mmdd < 0 || date2_mmdd < 0)
     return -1;
