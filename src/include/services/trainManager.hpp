@@ -36,7 +36,7 @@ private:
 public:
   StationBucketManager() = delete;
   StationBucketManager(const std::string &stationFile)
-      : stationBucket(stationFile + "_station") {
+      : stationBucket(stationFile) {
     stationBucket.initialise();
   }
   int addStations(vector<Station> &stations);
@@ -51,7 +51,7 @@ private:
 public:
   TicketBucketManager() = delete;
   TicketBucketManager(const std::string &ticketFile)
-      : ticketBucket(ticketFile + "_ticket") {
+      : ticketBucket(ticketFile) {
     ticketBucket.initialise();
   }
   int addTickets(int num_days, int num_stations_per_day, int init_value);
@@ -221,8 +221,8 @@ void TicketBucketManager::updateTickets(int bucketID, int offset,
 TrainManager::TrainManager(const std::string &trainFile)
     : trainDB(trainFile + "_train", string32::string32_MAX()),
       ticketLookupDB(trainFile + "_ticket_lookup", string32::string32_MAX()),
-      stationBucketManager(trainFile + "_station_bucket"),
-      ticketBucketManager(trainFile + "ticket_bucket") {}
+      stationBucketManager(trainFile + "_station_bucket_data"),
+      ticketBucketManager(trainFile + "_ticket_bucket_data") {}
 
 int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
                            int seatNum_val, const std::string &stations_str,
