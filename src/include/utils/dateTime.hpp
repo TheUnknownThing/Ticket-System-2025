@@ -49,7 +49,7 @@ public:
   }
 
   // Constructor with MMDD int and minutes int
-  DateTime(int mmdd, int minutes) : date_mmdd(mmdd), time_minutes(minutes) {}
+  DateTime(int mmdd, int minutes = -1) : date_mmdd(mmdd), time_minutes(minutes) {}
 
   // Setters
   void setDate(const sjtu::string32 &date) {
@@ -105,44 +105,56 @@ public:
 
   // Add duration in minutes
   void addDuration(int duration_minutes) {
-    if (hasDate() && hasTime()) {
-      addDurationToDateTime(date_mmdd, time_minutes, duration_minutes);
-    } else if (hasTime()) {
-      time_minutes += duration_minutes;
-      if (time_minutes >= 0) {
-        time_minutes %= 1440;
-        time_minutes = (time_minutes % 1440 + 1440) % 1440;
-      }
-    }
+    int current_date = hasDate() ? date_mmdd : 0;
+    int current_time = hasTime() ? time_minutes : 0;
+    
+    addDurationToDateTime(current_date, current_time, duration_minutes);
+    
+    date_mmdd = current_date;
+    time_minutes = current_time;
   }
 
   void minusDuration(int duration_minutes) {
-    if (hasDate() && hasTime()) {
-      minusDurationFromDateTime(date_mmdd, time_minutes, duration_minutes);
-    } else if (hasTime()) {
-      time_minutes -= duration_minutes;
-      if (time_minutes < 0) {
-        time_minutes += 1440; // Wrap around
-      }
-    }
+    int current_date = hasDate() ? date_mmdd : 0;
+    int current_time = hasTime() ? time_minutes : 0;
+    
+    minusDurationFromDateTime(current_date, current_time, duration_minutes);
+    
+    date_mmdd = current_date;
+    time_minutes = current_time;
   }
 
   bool isValid() const { return hasDate() || hasTime(); }
 
   bool operator<(const DateTime &other) const {
-    if (date_mmdd != other.date_mmdd)
-      return date_mmdd < other.date_mmdd;
-    return time_minutes < other.time_minutes;
+    int this_date = hasDate() ? date_mmdd : 0;
+    int other_date = other.hasDate() ? other.date_mmdd : 0;
+    int this_time = hasTime() ? time_minutes : 0;
+    int other_time = other.hasTime() ? other.time_minutes : 0;
+    
+    if (this_date != other_date)
+      return this_date < other_date;
+    return this_time < other_time;
   }
 
   bool operator>(const DateTime &other) const {
-    if (date_mmdd != other.date_mmdd)
-      return date_mmdd > other.date_mmdd;
-    return time_minutes > other.time_minutes;
+    int this_date = hasDate() ? date_mmdd : 0;
+    int other_date = other.hasDate() ? other.date_mmdd : 0;
+    int this_time = hasTime() ? time_minutes : 0;
+    int other_time = other.hasTime() ? other.time_minutes : 0;
+    
+    if (this_date != other_date)
+      return this_date > other_date;
+    return this_time > other_time;
   }
 
   bool operator==(const DateTime &other) const {
-    return date_mmdd == other.date_mmdd && time_minutes == other.time_minutes;
+    int this_date = hasDate() ? date_mmdd : 0;
+    int other_date = other.hasDate() ? other.date_mmdd : 0;
+    int this_time = hasTime() ? time_minutes : 0;
+    int other_time = other.hasTime() ? other.time_minutes : 0;
+    
+    return this_date == other_date && this_time == other_time;
   }
 
   bool operator!=(const DateTime &other) const {
@@ -163,29 +175,45 @@ public:
 
   DateTime operator+(const DateTime &other) const {
     DateTime result = *this;
-    if (result.hasDate() && other.hasDate()) {
-      result.date_mmdd = other.date_mmdd;
+    
+    int result_date = result.hasDate() ? result.date_mmdd : 0;
+    int other_date = other.hasDate() ? other.date_mmdd : 0;
+    int result_time = result.hasTime() ? result.time_minutes : 0;
+    int other_time = other.hasTime() ? other.time_minutes : 0;
+    
+    result_date += other_date;
+    result_time += other_time;
+    
+    if (result_time >= 1440) {
+      result_date += result_time / 1440;
+      result_time %= 1440;
     }
-    if (result.hasTime() && other.hasTime()) {
-      result.time_minutes += other.time_minutes;
-      if (result.time_minutes >= 1440) {
-        result.time_minutes %= 1440;
-      }
-    }
+    
+    result.date_mmdd = result_date;
+    result.time_minutes = result_time;
+    
     return result;
   }
 
   DateTime operator-(const DateTime &other) const {
     DateTime result = *this;
-    if (result.hasDate() && other.hasDate()) {
-      result.date_mmdd = other.date_mmdd;
+    
+    int result_date = result.hasDate() ? result.date_mmdd : 0;
+    int other_date = other.hasDate() ? other.date_mmdd : 0;
+    int result_time = result.hasTime() ? result.time_minutes : 0;
+    int other_time = other.hasTime() ? other.time_minutes : 0;
+    
+    result_date -= other_date;
+    result_time -= other_time;
+    
+    if (result_time < 0) {
+      result_date -= 1;
+      result_time += 1440;
     }
-    if (result.hasTime() && other.hasTime()) {
-      result.time_minutes -= other.time_minutes;
-      if (result.time_minutes < 0) {
-        result.time_minutes += 1440; // Wrap around
-      }
-    }
+    
+    result.date_mmdd = result_date;
+    result.time_minutes = result_time;
+    
     return result;
   }
 

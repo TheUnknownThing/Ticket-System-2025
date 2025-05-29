@@ -542,13 +542,13 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
       totalPrice += stations[i].price;
     }
 
-    int duration = stations[to_idx - 1].arrivalTimeOffset -
+    int duration = stations[to_idx].arrivalTimeOffset -
                    stations[from_idx].leavingTimeOffset;
 
-    DateTime departureDateTime = queryDate;
+    DateTime departureDateTime(queryDate.getDateMMDD(), train.startTime.getTimeMinutes());
     departureDateTime.addDuration(stations[from_idx].leavingTimeOffset);
-    DateTime endDateTime = queryDate;
-    endDateTime.addDuration(stations[to_idx - 1].arrivalTimeOffset);
+    DateTime endDateTime(queryDate.getDateMMDD(), train.startTime.getTimeMinutes());
+    endDateTime.addDuration(stations[to_idx].arrivalTimeOffset);
 
     // trainDetails.push_back(
     //     std::make_tuple(train.trainID, totalPrice, stations[from_idx].name,
@@ -660,16 +660,16 @@ std::string TrainManager::queryTransfer(const string32 &from,
 
       // Now queryDate is the actual departure date of train1
 
-      DateTime departureDateTime_train1_leg = queryDate;
+      DateTime departureDateTime_train1_leg(queryDate.getDateMMDD(), train1_obj.startTime.getTimeMinutes());
       departureDateTime_train1_leg.addDuration(
           stations_train1[from_idx_train1].leavingTimeOffset);
 
-      DateTime arrivalAtTransferDateTime_train1_leg = queryDate;
+      DateTime arrivalAtTransferDateTime_train1_leg(queryDate.getDateMMDD(), train1_obj.startTime.getTimeMinutes());
       arrivalAtTransferDateTime_train1_leg.addDuration(
-          stations_train1[transfer_station_idx_train1 - 1].arrivalTimeOffset);
+          stations_train1[transfer_station_idx_train1].arrivalTimeOffset);
 
       int duration_train1_leg =
-          stations_train1[transfer_station_idx_train1 - 1].arrivalTimeOffset -
+          stations_train1[transfer_station_idx_train1].arrivalTimeOffset -
           stations_train1[from_idx_train1].leavingTimeOffset;
 
       vector<int> leftSeats_train1_vec = queryLeftSeats(
