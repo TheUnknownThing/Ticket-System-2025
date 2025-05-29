@@ -572,6 +572,7 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
                        (a.duration == b.duration && a.trainID < b.trainID);
               });
   }
+  return trainDetails;
 }
 
 std::string TrainManager::queryTicket(const string32 &from, const string32 &to,
@@ -579,7 +580,11 @@ std::string TrainManager::queryTicket(const string32 &from, const string32 &to,
                                       const std::string &sortBy) {
   DateTime date(date_s32);
   auto trainDetails = querySingle(from, to, date, sortBy);
+  if (trainDetails.empty()) {
+    return "0"; // No tickets found
+  }
   std::ostringstream oss;
+  oss << trainDetails.size() << "\n";
   for (int i = 0; i < trainDetails.size(); ++i) {
     const auto &detail = trainDetails[i];
     oss << detail;
@@ -851,7 +856,7 @@ bool TrainManager::refundTicket(const string32 &trainID,
       from_idx >= to_idx) {
     return false;
   }
-  for (int i = from_idx; i < to_idx; ++i) {
+  for (int i = 0; i < to_idx - from_idx; ++i) {
     leftSeats[i] += num;
   }
   ticketBucketManager.updateTickets(train.ticketBucketID, from_idx,

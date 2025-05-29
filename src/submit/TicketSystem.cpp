@@ -17,7 +17,7 @@ using sjtu::map;
 
 int main() {
   // use test/TicketSystem/2.in as input
-  freopen("../test/TicketSystem/2.in", "r", stdin);
+  // freopen("../test/TicketSystem/2.in", "r", stdin);
 
   UserManager userManager("users");
   TrainManager trainManager("trains");

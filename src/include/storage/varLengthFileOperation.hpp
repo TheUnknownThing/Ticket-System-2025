@@ -127,9 +127,9 @@ public:
     file.read(reinterpret_cast<char *>(data_buffer),
               static_cast<std::streamsize>(num_elements) * sizeof(int));
 
-    vector<int> result(num_elements);
+    vector<int> result;
     for (int i = 0; i < num_elements; ++i) {
-      result[i] = data_buffer[i];
+      result.push_back(data_buffer[i]);
     }
     return result;
   }
@@ -139,9 +139,9 @@ public:
     int data_buffer[num_elements];
     file.read(reinterpret_cast<char *>(data_buffer),
               static_cast<std::streamsize>(num_elements) * sizeof(int));
-    vector<int> result(num_elements);
+    vector<int> result;
     for (int i = 0; i < num_elements; ++i) {
-      result[i] = data_buffer[i];
+      result.push_back(data_buffer[i]);
     }
     return result;
   }
