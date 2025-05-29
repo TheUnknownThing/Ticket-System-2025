@@ -1,10 +1,39 @@
 #!/bin/bash
 
-if [ $# -eq 0 ]; then
-  echo "Usage: $0 <testcase_group_name>"
+clear_logs=false
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --clear-logs)
+      clear_logs=true
+      shift
+      ;;
+    -*)
+      echo "Unknown option $1"
+      exit 1
+      ;;
+    *)
+      testcase_group="$1"
+      shift
+      ;;
+  esac
+done
+
+if [ -z "$testcase_group" ]; then
+  echo "Usage: $0 [--clear-logs] <testcase_group_name>"
+  echo "  --clear-logs: Clear old test logs before running"
   echo "Available testcase groups from config.json:"
   jq -r '.Groups[].GroupName' test/TicketSystem/config.json | sed 's/^/  /'
   exit 1
+fi
+
+# Clear test logs if requested
+if [ "$clear_logs" = true ]; then
+  if [ -d "test_logs" ]; then
+    echo "Clearing old test logs..."
+    rm -f test_logs/test-*.log
+  fi
 fi
 
 if [ ! -e test/TicketSystem/config.json ]; then
@@ -18,14 +47,14 @@ if [ ! -e "$(which jq)" ]; then
   exit 1
 fi
 
-if ! jq -e ".Groups[] | select(.GroupName == \"$1\")" test/TicketSystem/config.json > /dev/null; then
-  echo "Testcase group '$1' not found in config.json"
+if ! jq -e ".Groups[] | select(.GroupName == \"$testcase_group\")" test/TicketSystem/config.json > /dev/null; then
+  echo "Testcase group '$testcase_group' not found in config.json"
   echo "Available testcase groups:"
   jq -r '.Groups[].GroupName' test/TicketSystem/config.json | sed 's/^/  /'
   exit 1
 fi
 
-list=$(jq ".Groups[] | select(.GroupName == \"$1\") | .TestPoints[]" test/TicketSystem/config.json)
+list=$(jq ".Groups[] | select(.GroupName == \"$testcase_group\") | .TestPoints[]" test/TicketSystem/config.json)
 
 exename="code"
 if [ ! -e "build/$exename" ]; then
@@ -55,6 +84,9 @@ exe="$testdir/$exename"
 cwd="$(pwd)"
 basedir="$cwd/test/TicketSystem"
 
+# Create test_logs directory if it doesn't exist
+mkdir -p "$cwd/test_logs"
+
 cd "$testdir"
 
 for i in $list; do
@@ -64,7 +96,7 @@ for i in $list; do
   difffile="$(tmp)"
   if diff -ZB "$outfile" "$basedir/$i.out" > "$difffile"; then true; else
     cat "$difffile" | head -5
-    backup="test-$1-$i-$(date '+%s').log"
+    backup="test-$testcase_group-$i-$(date '+%s').log"
     cp "$outfile" "$cwd/test_logs/$backup"
     echo "Test failed on input #$i."
     echo "Output saved to $backup"
