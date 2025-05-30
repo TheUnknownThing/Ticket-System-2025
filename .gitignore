@@ -21,3 +21,4 @@ output.cpp
 test_logs/*
 test/TicketSystem/*
 test/TicketSystem/*
+*.log

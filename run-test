@@ -122,6 +122,7 @@ for i in $list; do
     cat "$difffile" | head -5
     backup="test-$testcase_group-$i-$(date '+%s').log"
     cp "$outfile" "$cwd/test_logs/$backup"
+    cp "cerr.log" "$cwd/test_logs/cerr-$backup"
     save_diff_result "$testcase_group" "$i" "$difffile"
     save_input_file "$testcase_group" "$i"
     echo "Test failed on input #$i."

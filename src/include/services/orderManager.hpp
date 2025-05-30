@@ -6,6 +6,7 @@
 #include "stl/vector.hpp"
 #include "storage/bptStorage.hpp"
 #include "utils/dateTime.hpp"
+#include "utils/logger.hpp"
 #include "utils/string32.hpp"
 #include <iomanip>
 #include <iostream>
@@ -114,9 +115,9 @@ public:
    * @param queueIfNotAvailable If true, add to pending queue if tickets not
    * immediately available.
    * @param timestamp A unique timestamp for this buy attempt.
-   * @return 0 for success, 1 for pending, -1 for failure (e.g. invalid input,
-   * or not queued on failure). Note: The `price` is assumed to be determined
-   * during the (simulated) call to TrainManager.
+   * @return price for success, 0 for pending, -1 for failure (e.g. invalid
+   * input, or not queued on failure). Note: The `price` is assumed to be
+   * determined during the (simulated) call to TrainManager.
    */
   int buyTicket(const string32 &username, const string32 &trainID,
                 const string32 &date_str, int num_tickets,
@@ -142,18 +143,23 @@ private:
    * @param date_str The train's departure date from its STARTING STATION
    * (format "MM-DD").
    */
-  void processPendingOrders(const string32 &trainID, int origin_date_mmdd,
-                            int from_idx, int to_idx, int num_tickets);
+  void processPendingOrders(const string32 &trainID, int origin_date_mmdd);
 };
 
 OrderManager::OrderManager(const std::string &orderFile, TrainManager *tm)
     : orderDB(orderFile + "_order", string32::string32_MAX()),
       pendingQueue(orderFile + "_pending",
                    std::make_pair(string32::string32_MAX(), INT_MAX)),
-      trainManager_ptr(tm) {}
+      trainManager_ptr(tm) {
+  LOG("OrderManager initialized with file: " + orderFile);
+}
 
 vector<Order> OrderManager::queryOrder(const string32 &username) {
-  return orderDB.find(username);
+  LOG("Querying orders for user: " + username.toString());
+  vector<Order> orders = orderDB.find(username);
+  LOG("Found " + std::to_string(orders.size()) +
+      " orders for user: " + username.toString());
+  return orders;
 }
 
 int OrderManager::buyTicket(const string32 &username, const string32 &trainID,
@@ -162,11 +168,18 @@ int OrderManager::buyTicket(const string32 &username, const string32 &trainID,
                             const string32 &to_station_name,
                             bool queueIfNotAvailable, int timestamp) {
 
+  LOG("Buy ticket request - User: " + username.toString() +
+      ", Train: " + trainID.toString() + ", Date: " + date_str.toString() +
+      ", Tickets: " + std::to_string(num_tickets) + ", From: " +
+      from_station_name.toString() + ", To: " + to_station_name.toString());
+
   DateTime trainOriginDepDate(date_str); // Parses "MM-DD"
   if (!trainOriginDepDate.hasDate()) {
+    ERROR("Invalid date format: " + date_str.toString());
     return -1; // Invalid date
   }
   if (num_tickets <= 0) {
+    ERROR("Invalid number of tickets: " + std::to_string(num_tickets));
     return -1; // Invalid number of tickets
   }
 
@@ -185,6 +198,8 @@ int OrderManager::buyTicket(const string32 &username, const string32 &trainID,
                    departureFromStation, arrivalAtStation, price, num_tickets,
                    SUCCESS, timestamp);
     orderDB.insert(username, newOrder);
+    LOG("Ticket purchase successful - User: " + username.toString() +
+        ", Train: " + trainID.toString() + ", Price: " + std::to_string(price));
     return price;
   } else {
     if (price != -1 && origin_date_mmdd != -1 && !isSuccessful &&
@@ -199,8 +214,12 @@ int OrderManager::buyTicket(const string32 &username, const string32 &trainID,
                      PENDING, timestamp);
       orderDB.insert(username, newOrder);
       pendingQueue.insert(std::make_pair(trainID, origin_date_mmdd), newOrder);
+      LOG("Ticket purchase queued - User: " + username.toString() +
+          ", Train: " + trainID.toString());
       return 0; // Pending
     } else {
+      ERROR("Ticket purchase failed - User: " + username.toString() +
+            ", Train: " + trainID.toString());
       return -1; // Failure
     }
   }
@@ -208,12 +227,20 @@ int OrderManager::buyTicket(const string32 &username, const string32 &trainID,
 
 bool OrderManager::refundTicket(const string32 &username,
                                 int orderIndex) { // orderIndex is 1-based
-  if (orderIndex <= 0)
+  LOG("Refund ticket request - User: " + username.toString() +
+      ", Order index: " + std::to_string(orderIndex));
+
+  if (orderIndex <= 0) {
+    ERROR("Invalid order index: " + std::to_string(orderIndex));
     return false;
+  }
 
   vector<Order> userOrders = orderDB.find(username);
 
   if (static_cast<size_t>(orderIndex) > userOrders.size()) {
+    ERROR("Order index out of range - User: " + username.toString() +
+          ", Index: " + std::to_string(orderIndex) +
+          ", Total orders: " + std::to_string(userOrders.size()));
     return false;
   }
 
@@ -222,6 +249,8 @@ bool OrderManager::refundTicket(const string32 &username,
   // std::cout << "Refunding order: " << orderToRefund << std::endl;
 
   if (orderToRefund.status == REFUNDED) {
+    LOG("Order already refunded - User: " + username.toString() +
+        ", Train: " + orderToRefund.trainID.toString());
     return false; // Already refunded
   }
 
@@ -236,10 +265,9 @@ bool OrderManager::refundTicket(const string32 &username,
           orderToRefund);
     }
     orderToRefund.status = REFUNDED;
-
     orderDB.insert(username, orderToRefund);
 
-    if (trainManager_ptr && originalState == SUCCESS) {
+    if (originalState == SUCCESS) {
       int from_idx = orderToRefund.from_station_idx;
       int to_idx = orderToRefund.to_station_idx;
       if (from_idx != -1 && to_idx != -1) {
@@ -247,38 +275,56 @@ bool OrderManager::refundTicket(const string32 &username,
                                        orderToRefund.departureDateTime,
                                        orderToRefund.num, from_idx, to_idx);
       }
-      // TODO: Now need to process Pending Orders // FIXED
+
       processPendingOrders(orderToRefund.trainID,
-                           orderToRefund.departureDateTime.getDateMMDD(),
-                           from_idx, to_idx, orderToRefund.num);
+                           orderToRefund.departureDateTime.getDateMMDD());
     }
+
+    LOG("Ticket refund successful - User: " + username.toString() +
+        ", Train: " + orderToRefund.trainID.toString() +
+        ", Status was: " + (originalState == SUCCESS ? "SUCCESS" : "PENDING"));
     return true;
   }
+
+  ERROR("Refund failed - invalid order status");
   return false;
 }
 
 void OrderManager::processPendingOrders(const string32 &trainID,
-                                        int origin_date_mmdd, int from_idx,
-                                        int to_idx, int num_tickets) {
+                                        int origin_date_mmdd) {
+  LOG("Processing pending orders for train: " + trainID.toString() +
+      ", Date: " + std::to_string(origin_date_mmdd));
+
   vector<Order> candidates =
       pendingQueue.find(std::make_pair(trainID, origin_date_mmdd));
-  if (candidates.empty()) {
-    return;
-  }
 
-  for (Order pendingOrder : candidates) {
-    auto isSuccessful = trainManager_ptr->updateLeftSeats(
-        trainID, pendingOrder.departureDateTime, pendingOrder.from_station_idx,
-        pendingOrder.to_station_idx, -pendingOrder.num);
-    if (isSuccessful) {
-      // remove from pending, update order status to SUCCESS
-      orderDB.remove(pendingOrder.username, pendingOrder);
+  LOG("Found " + std::to_string(candidates.size()) +
+      " pending orders to process");
+
+  int processedCount = 0;
+  for (const Order &pendingOrder : candidates) {
+    bool success = trainManager_ptr->updateLeftSeats(
+        pendingOrder.trainID, pendingOrder.departureDateTime,
+        pendingOrder.from_station_idx, pendingOrder.to_station_idx,
+        -pendingOrder.num);
+
+    if (success) {
       pendingQueue.remove(std::make_pair(trainID, origin_date_mmdd),
                           pendingOrder);
-      pendingOrder.status = SUCCESS;
-      orderDB.insert(pendingOrder.username, pendingOrder);
+      orderDB.remove(pendingOrder.username, pendingOrder);
+      Order updatedOrder = pendingOrder;
+      updatedOrder.status = SUCCESS;
+      orderDB.insert(updatedOrder.username, updatedOrder);
+      processedCount++;
+
+      LOG("Pending order promoted to SUCCESS - User: " +
+          pendingOrder.username.toString() +
+          ", Train: " + pendingOrder.trainID.toString());
     }
   }
+
+  LOG("Processed " + std::to_string(processedCount) +
+      " pending orders successfully");
 }
 
 #endif // ORDER_MANAGER_HPP

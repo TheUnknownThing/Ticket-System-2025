@@ -8,6 +8,7 @@
 #include "storage/varLengthFileOperation.hpp"
 #include "utils/dateFormatter.hpp"
 #include "utils/dateTime.hpp"
+#include "utils/logger.hpp"
 #include "utils/splitString.hpp"
 #include "utils/string32.hpp"
 #include <climits>
@@ -38,6 +39,7 @@ public:
   StationBucketManager(const std::string &stationFile)
       : stationBucket(stationFile) {
     stationBucket.initialise();
+    LOG("StationBucketManager initialized with file: " + stationFile);
   }
   int addStations(vector<Station> &stations);
   bool deleteStations(int bucketID, int num);
@@ -53,6 +55,7 @@ public:
   TicketBucketManager(const std::string &ticketFile)
       : ticketBucket(ticketFile) {
     ticketBucket.initialise();
+    LOG("TicketBucketManager initialized with file: " + ticketFile);
   }
   int addTickets(int num_days, int num_stations_per_day, int init_value);
   vector<int> queryTickets(int bucketID);
@@ -171,12 +174,16 @@ private:
 };
 
 int StationBucketManager::addStations(vector<Station> &stations) {
-  if (stations.empty())
+  if (stations.empty()) {
+    ERROR("addStations: empty stations vector");
     return -1;
+  }
   int bucketID = stationBucket.write(stations[0]);
   for (size_t i = 1; i < stations.size(); ++i) {
     stationBucket.write(stations[i]);
   }
+  LOG("Added " + std::to_string(stations.size()) +
+      " stations with bucket ID: " + std::to_string(bucketID));
   return bucketID;
 }
 
@@ -184,6 +191,8 @@ bool StationBucketManager::deleteStations(int bucketID, int num) {
   for (int i = 0; i < num; ++i) {
     stationBucket.remove(bucketID + i * sizeof(Station));
   }
+  LOG("Deleted " + std::to_string(num) +
+      " stations from bucket ID: " + std::to_string(bucketID));
   return true;
 }
 
@@ -194,30 +203,43 @@ vector<Station> StationBucketManager::queryStations(int bucketID, int num) {
     stationBucket.read(station, bucketID + i * sizeof(Station));
     stations_vec.push_back(station);
   }
+  LOG("Queried " + std::to_string(num) +
+      " stations from bucket ID: " + std::to_string(bucketID));
   return stations_vec;
 }
 
 int TicketBucketManager::addTickets(int num_days, int num_stations_per_day,
                                     int init_value) {
-  return ticketBucket.write(init_value, num_days * num_stations_per_day);
+  int bucketID =
+      ticketBucket.write(init_value, num_days * num_stations_per_day);
+  LOG("Added tickets: " + std::to_string(num_days) + " days, " +
+      std::to_string(num_stations_per_day) +
+      " stations per day, bucket ID: " + std::to_string(bucketID));
+  return bucketID;
 }
 
 vector<int> TicketBucketManager::queryTickets(int bucketID) {
+  LOG("Querying all tickets from bucket ID: " + std::to_string(bucketID));
   return ticketBucket.read(bucketID);
 }
 vector<int> TicketBucketManager::queryTickets(int bucketID, int offset,
                                               int num_elements) {
+  LOG("Querying " + std::to_string(num_elements) + " tickets from bucket ID: " +
+      std::to_string(bucketID) + " offset: " + std::to_string(offset));
   return ticketBucket.read(bucketID, offset, num_elements);
 }
 
 void TicketBucketManager::updateTickets(int bucketID,
                                         const vector<int> &tickets) {
+  LOG("Updating all tickets in bucket ID: " + std::to_string(bucketID));
   return ticketBucket.update(bucketID, tickets);
 }
 
 void TicketBucketManager::updateTickets(int bucketID, int offset,
                                         int num_elements,
                                         const vector<int> &tickets) {
+  LOG("Updating " + std::to_string(num_elements) + " tickets in bucket ID: " +
+      std::to_string(bucketID) + " offset: " + std::to_string(offset));
   return ticketBucket.update(bucketID, offset, num_elements, tickets);
 }
 
@@ -225,7 +247,9 @@ TrainManager::TrainManager(const std::string &trainFile)
     : trainDB(trainFile + "_train", string32::string32_MAX()),
       ticketLookupDB(trainFile + "_ticket_lookup", string32::string32_MAX()),
       stationBucketManager(trainFile + "_station_bucket_data"),
-      ticketBucketManager(trainFile + "_ticket_bucket_data") {}
+      ticketBucketManager(trainFile + "_ticket_bucket_data") {
+  LOG("TrainManager initialized with file prefix: " + trainFile);
+}
 
 int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
                            int seatNum_val, const std::string &stations_str,
@@ -234,7 +258,10 @@ int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
                            const std::string &travelTimes_str,
                            const std::string &stopoverTimes_str,
                            const std::string &saleDates_str, char trainType) {
+  LOG("Adding train: " + trainID.toString());
+
   if (!trainDB.find(trainID).empty()) {
+    ERROR("Train ID already exists: " + trainID.toString());
     return -1; // Train ID already exists
   }
 
@@ -243,8 +270,10 @@ int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
 
   DateTime trainStartTime(sjtu::string32(startTime_str.c_str()),
                           true); // true for time
-  if (!trainStartTime.hasTime())
+  if (!trainStartTime.hasTime()) {
+    ERROR("Invalid start time format for train: " + trainID.toString());
     return -1;
+  }
 
   vector<int> travelTimesMinutes = splitStringToInt(travelTimes_str, '|');
 
@@ -256,13 +285,16 @@ int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
   }
 
   vector<string32> saleDateParts = splitString(saleDates_str, '|');
-  if (saleDateParts.size() != 2)
+  if (saleDateParts.size() != 2) {
+    ERROR("Invalid sale date format for train: " + trainID.toString());
     return -1; // Invalid sale date format
+  }
   DateTime saleStartDt(saleDateParts[0]);
   DateTime saleEndDt(saleDateParts[1]);
 
   if (!saleStartDt.hasDate() || !saleEndDt.hasDate() ||
       saleStartDt.getDateMMDD() > saleEndDt.getDateMMDD()) {
+    ERROR("Invalid sale dates for train: " + trainID.toString());
     return -1; // Invalid sale dates
   }
 
@@ -273,10 +305,12 @@ int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
                                  static_cast<size_t>(stationNum_val - 2)) ||
       (stationNum_val == 2 && !stopoverTimesMinutes.empty() &&
        stopoverTimes_str != "_")) {
+    ERROR("Invalid parameters size for train: " + trainID.toString());
     return -1;
   }
   if (stationNum_val == 2 && stopoverTimes_str != "_" &&
       !stopoverTimesMinutes.empty()) {
+    ERROR("Invalid stopover times for 2-station train: " + trainID.toString());
     return -1; // For 2 stations, stopover times should be empty if not "_"
   }
 
@@ -314,6 +348,7 @@ int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
 
   int station_bID = stationBucketManager.addStations(stationData);
   if (station_bID == -1) {
+    ERROR("Failed to add stations for train: " + trainID.toString());
     return -1;
   }
 
@@ -330,32 +365,42 @@ int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
   newTrain.isReleased = false;
 
   trainDB.insert(trainID, newTrain);
+  LOG("Successfully added train: " + trainID.toString());
   return 0;
 }
 
 int TrainManager::deleteTrain(const string32 &trainID) {
+  LOG("Deleting train: " + trainID.toString());
+
   auto foundTrains = trainDB.find(trainID);
   if (foundTrains.empty()) {
+    ERROR("Train not found for deletion: " + trainID.toString());
     return -1;
   }
   Train trainToDelete = foundTrains[0];
   if (trainToDelete.isReleased) {
+    ERROR("Cannot delete released train: " + trainID.toString());
     return -1; // Cannot delete a released train
   }
 
   trainDB.remove(trainID, trainToDelete);
   stationBucketManager.deleteStations(trainToDelete.stationBucketID,
                                       trainToDelete.stationNum);
+  LOG("Successfully deleted train: " + trainID.toString());
   return 0;
 }
 
 int TrainManager::releaseTrain(const string32 &trainID) {
+  LOG("Releasing train: " + trainID.toString());
+
   auto foundTrains = trainDB.find(trainID);
   if (foundTrains.empty()) {
+    ERROR("Train not found for release: " + trainID.toString());
     return -1; // Train not found
   }
   Train trainToRelease = foundTrains[0];
   if (trainToRelease.isReleased) {
+    ERROR("Train already released: " + trainID.toString());
     return -1; // Already released
   }
 
@@ -368,8 +413,10 @@ int TrainManager::releaseTrain(const string32 &trainID) {
   int ticket_bID = ticketBucketManager.addTickets(
       numSaleDays, trainToRelease.stationNum - 1, trainToRelease.seatNum);
 
-  if (ticket_bID == -1)
+  if (ticket_bID == -1) {
+    ERROR("Failed to add tickets for train: " + trainID.toString());
     return -1;
+  }
 
   auto stations = stationBucketManager.queryStations(
       trainToRelease.stationBucketID, trainToRelease.stationNum);
@@ -381,24 +428,33 @@ int TrainManager::releaseTrain(const string32 &trainID) {
   trainToRelease.ticketBucketID = ticket_bID;
   trainDB.insert(trainID, trainToRelease);
 
+  LOG("Successfully released train: " + trainID.toString() + " with " +
+      std::to_string(numSaleDays) + " sale days");
   return 0;
 }
 
 std::string TrainManager::queryTrain(const string32 &trainID,
                                      const string32 &date_s32) {
+  LOG("Querying train: " + trainID.toString() +
+      " for date: " + date_s32.toString());
+
   DateTime queryDate(date_s32); // Parse "mm-dd" string
   if (!queryDate.hasDate()) {
+    ERROR("Invalid date format for train query: " + date_s32.toString());
     return "-1"; // Invalid date format
   }
 
   auto foundTrains = trainDB.find(trainID);
   if (foundTrains.empty()) {
+    ERROR("Train not found for query: " + trainID.toString());
     return "-1"; // Train not found
   }
   Train train = foundTrains[0];
 
   if (queryDate.getDateMMDD() < train.saleStartDate.getDateMMDD() ||
       queryDate.getDateMMDD() > train.saleEndDate.getDateMMDD()) {
+    ERROR("Train not on sale for date: " + trainID.toString() + " " +
+          date_s32.toString());
     return "-1"; // Not on sale on this date
   }
 
@@ -461,6 +517,8 @@ std::string TrainManager::queryTrain(const string32 &trainID,
       oss << "\n";
     }
   }
+
+  LOG("Successfully queried train: " + trainID.toString());
   return oss.str();
 }
 
@@ -468,6 +526,8 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
                                                   const string32 &to,
                                                   const DateTime &date,
                                                   const std::string &sortBy) {
+  LOG("Querying single route from " + from.toString() + " to " + to.toString());
+
   DateTime queryDate = date;
 
   auto fromTrains = ticketLookupDB.find(from);
@@ -485,6 +545,7 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
   }
 
   if (matchingTrainIDs.empty()) {
+    LOG("No matching trains found for route");
     return vector<TicketCandidate>(); // No matching trains found
   }
   vector<TicketCandidate>
@@ -563,15 +624,21 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
                        (a.duration == b.duration && a.trainID < b.trainID);
               });
   }
+
+  LOG("Found " + std::to_string(trainDetails.size()) + " ticket candidates");
   return trainDetails;
 }
 
 std::string TrainManager::queryTicket(const string32 &from, const string32 &to,
                                       const string32 &date_s32,
                                       const std::string &sortBy) {
+  LOG("Querying tickets from " + from.toString() + " to " + to.toString() +
+      " on " + date_s32.toString() + " sorted by " + sortBy);
+
   DateTime date(date_s32);
   auto trainDetails = querySingle(from, to, date, sortBy);
   if (trainDetails.empty()) {
+    LOG("No tickets found for query");
     return "0"; // No tickets found
   }
   std::ostringstream oss;
@@ -584,6 +651,7 @@ std::string TrainManager::queryTicket(const string32 &from, const string32 &to,
     }
   }
 
+  LOG("Found " + std::to_string(trainDetails.size()) + " tickets");
   return oss.str();
 }
 
@@ -591,6 +659,9 @@ std::string TrainManager::queryTransfer(const string32 &from,
                                         const string32 &to,
                                         const string32 &date_s32,
                                         const std::string &sortBy) {
+  LOG("Querying transfer from " + from.toString() + " to " + to.toString() +
+      " on " + date_s32.toString() + " sorted by " + sortBy);
+
   DateTime queryDate(date_s32); // Parse "mm-dd" string
 
   TicketCandidate bestLeg1Candidate;
@@ -746,11 +817,14 @@ std::string TrainManager::queryTransfer(const string32 &from,
   }
 
   if (!transferFound) {
+    LOG("No transfer route found");
     return "";
   }
 
   std::ostringstream oss;
   oss << bestLeg1Candidate << "\n" << bestLeg2Candidate;
+  LOG("Found transfer route with " + std::to_string(transferFound ? 2 : 0) +
+      " legs");
   return oss.str();
 }
 
@@ -769,14 +843,22 @@ std::tuple<int, int, bool, int, int, int, int>
 TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
                         int num, const string32 &from_station_name,
                         const string32 &to_station_name) {
+  LOG("Buying " + std::to_string(num) + " tickets for train " +
+      trainID.toString() + " from " + from_station_name.toString() + " to " +
+      to_station_name.toString());
+
   DateTime queryDate = departureDate;
 
   auto foundTrains = trainDB.find(trainID);
-  if (foundTrains.empty() || !foundTrains[0].isReleased)
+  if (foundTrains.empty() || !foundTrains[0].isReleased) {
+    ERROR("Train not found or not released: " + trainID.toString());
     return {-1, -1, false, -1, -1, -1, -1};
+  }
   Train train = foundTrains[0];
 
   if (num > train.seatNum) {
+    ERROR("Not enough seats available: requested " + std::to_string(num) +
+          " but train has " + std::to_string(train.seatNum));
     return {-1, -1, false, -1, -1, -1, -1}; // Not enough seats available
   }
 
@@ -787,6 +869,7 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
       train.stationBucketID, train.stationNum);
   for (int i = 0; i < train.stationNum; ++i) {
     if (train.stationBucketID == -1) {
+      ERROR("No stations available for train: " + trainID.toString());
       return {-1, -1, false, -1, -1, -1, -1}; // No stations available
     }
     if (stations[i].name == from_station_name) {
@@ -797,6 +880,7 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
     }
   }
   if (from_idx == -1 || to_idx == -1 || from_idx >= to_idx) {
+    ERROR("Invalid station names or indices for train: " + trainID.toString());
     return {-1, -1, false, -1, -1, -1, -1}; // Invalid station names or indices
   }
 
@@ -805,6 +889,7 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
                           1440 * 1440); // Adjust to train's start time
   if (queryDate.getDateMMDD() < train.saleStartDate.getDateMMDD() ||
       queryDate.getDateMMDD() > train.saleEndDate.getDateMMDD()) {
+    ERROR("Train not on sale for date: " + trainID.toString());
     return {-1, -1, false, -1, -1, -1, -1}; // Not on sale on this date
   }
 
@@ -816,6 +901,13 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
   }
 
   totalPrice *= num; // Total price for the number of tickets
+
+  if (flag) {
+    LOG("Successfully bought " + std::to_string(num) + " tickets for " +
+        std::to_string(totalPrice) + " total price");
+  } else {
+    ERROR("Failed to update seat availability for ticket purchase");
+  }
 
   return {
       totalPrice,
@@ -830,12 +922,24 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
 bool TrainManager::refundTicket(const string32 &trainID,
                                 const DateTime &departureDate, int num,
                                 const int from_idx, const int to_idx) {
+  LOG("Refunding " + std::to_string(num) + " tickets for train " +
+      trainID.toString());
 
   auto foundTrains = trainDB.find(trainID);
-  if (foundTrains.empty() || !foundTrains[0].isReleased)
+  if (foundTrains.empty() || !foundTrains[0].isReleased) {
+    ERROR("Train not found or not released for refund: " + trainID.toString());
     return false;
+  }
   Train train = foundTrains[0];
-  return updateLeftSeats(trainID, departureDate, from_idx, to_idx, num);
+  bool result = updateLeftSeats(trainID, departureDate, from_idx, to_idx, num);
+
+  if (result) {
+    LOG("Successfully refunded " + std::to_string(num) + " tickets");
+  } else {
+    ERROR("Failed to refund tickets");
+  }
+
+  return result;
 }
 
 vector<int> TrainManager::queryLeftSeats(const string32 &trainID, DateTime date,
@@ -843,25 +947,35 @@ vector<int> TrainManager::queryLeftSeats(const string32 &trainID, DateTime date,
                                          const int to_station_idx) {
   auto foundTrains = trainDB.find(trainID);
   if (foundTrains.empty()) {
+    ERROR("Train not found for seat query: " + trainID.toString());
     return vector<int>(); // No such train
   }
   Train train = foundTrains[0];
   if (!train.isReleased) {
     vector<int> seats(to_station_idx - from_station_idx, train.seatNum);
+    LOG("Querying seats for unreleased train: " + trainID.toString());
     return seats;
   }
 
   int dayIndex =
       calcDateDuration(train.saleStartDate.getDateMMDD(), date.getDateMMDD());
-  if (dayIndex < 0)
+  if (dayIndex < 0) {
+    ERROR("Date is before sale starts for train: " + trainID.toString());
     return vector<int>(); // Date is before sale starts
+  }
 
   int baseOffsetForDay = dayIndex * (train.stationNum - 1);
   int startOffsetInBucket = baseOffsetForDay + from_station_idx;
 
   int numElementsToQuery = to_station_idx - from_station_idx;
-  if (numElementsToQuery <= 0)
+  if (numElementsToQuery <= 0) {
+    ERROR("Invalid station indices for seat query");
     return vector<int>();
+  }
+
+  LOG("Querying left seats for train " + trainID.toString() + " from station " +
+      std::to_string(from_station_idx) + " to " +
+      std::to_string(to_station_idx));
 
   return ticketBucketManager.queryTickets(
       train.ticketBucketID, startOffsetInBucket, numElementsToQuery);
@@ -872,24 +986,30 @@ bool TrainManager::updateLeftSeats(const string32 &trainID, DateTime date,
                                    const int to_station_idx, int num) {
   auto foundTrains = trainDB.find(trainID);
   if (foundTrains.empty()) {
+    ERROR("Train not found for seat update: " + trainID.toString());
     return false; // No such train
   }
   Train train = foundTrains[0];
   if (!train.isReleased) {
+    ERROR("Cannot update seats for unreleased train: " + trainID.toString());
     return false;
   }
 
   int dayIndex =
       calcDateDuration(train.saleStartDate.getDateMMDD(), date.getDateMMDD());
-  if (dayIndex < 0)
+  if (dayIndex < 0) {
+    ERROR("Date is before sale starts for seat update");
     return false; // Date is before sale starts
+  }
 
   int baseOffsetForDay = dayIndex * (train.stationNum - 1);
   int startOffsetInBucket = baseOffsetForDay + from_station_idx;
 
   int numElementsToQuery = to_station_idx - from_station_idx;
-  if (numElementsToQuery <= 0)
+  if (numElementsToQuery <= 0) {
+    ERROR("Invalid station indices for seat update");
     return false;
+  }
 
   auto tickets = ticketBucketManager.queryTickets(
       train.ticketBucketID, startOffsetInBucket, numElementsToQuery);
@@ -897,12 +1017,16 @@ bool TrainManager::updateLeftSeats(const string32 &trainID, DateTime date,
   for (int &ticket : tickets) {
     ticket += num; // Update the number of available seats
     if (ticket < 0) {
+      ERROR("Cannot have negative seats");
       return false; // Cannot have negative seats
     }
   }
 
   ticketBucketManager.updateTickets(train.ticketBucketID, startOffsetInBucket,
                                     numElementsToQuery, tickets);
+
+  LOG("Updated seats for train " + trainID.toString() + " by " +
+      std::to_string(num));
   return true;
 }
 
