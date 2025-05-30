@@ -229,6 +229,9 @@ bool OrderManager::refundTicket(const string32 &username,
                                        orderToRefund.num, from_idx, to_idx);
       }
       // TODO: Now need to process Pending Orders
+      processPendingOrders(orderToRefund.trainID,
+                           orderToRefund.departureDateTime.getDateMMDD(),
+                           from_idx, to_idx, orderToRefund.num);
     }
     return true;
   }

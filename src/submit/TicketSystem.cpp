@@ -59,7 +59,8 @@ int main() {
             params.count('g') ? std::stoi(params['g']) : -1);
       } else if (command == "add_train") {
         // if (params['i'] == "LeavesofGrass") {
-        //   std::cout << "DEBUG OUTPUT:" << params['i'] << " " << params['s'] << " "
+        //   std::cout << "DEBUG OUTPUT:" << params['i'] << " " << params['s']
+        //   << " "
         //             << params['p'] << " " << params['x'] << " "
         //             << params['t'] << " " << params['o'] << " "
         //             << params['d'] << " " << params['y'][0] << "\n";
@@ -115,7 +116,7 @@ int main() {
         }
       } else if (command == "refund_ticket") {
         int n = params.count('n') ? std::stoi(params['n']) : 1;
-        std::cout << orderManager.refundTicket(params['u'], n);
+        std::cout << (orderManager.refundTicket(params['u'], n) ? "0" : "-1");
       } else if (command == "clean") {
         userManager.clean();
         // trainManager.clean();

@@ -837,8 +837,17 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
     for (int i = 0; i < leftSeats.size(); ++i) {
       updatedSeats[i] -= num;
     }
-    ticketBucketManager.updateTickets(train.ticketBucketID, from_idx,
-                                      to_idx - from_idx, updatedSeats);
+
+    int dayIndex = calcDateDuration(train.saleStartDate.getDateMMDD(),
+                                    queryDate.getDateMMDD());
+    int baseOffsetForDay =
+        dayIndex * (train.stationNum - 1); // FIX: Maybe needed a fix here
+    int startOffsetInBucket = baseOffsetForDay + from_idx;
+
+    int numElementsToQuery = to_idx - from_idx;
+
+    ticketBucketManager.updateTickets(train.ticketBucketID, startOffsetInBucket,
+                                      numElementsToQuery, updatedSeats);
   }
 
   int totalPrice = 0;
@@ -868,8 +877,16 @@ bool TrainManager::refundTicket(const string32 &trainID,
   for (int i = 0; i < to_idx - from_idx; ++i) {
     leftSeats[i] += num;
   }
-  ticketBucketManager.updateTickets(train.ticketBucketID, from_idx,
-                                    to_idx - from_idx, leftSeats);
+  int dayIndex = calcDateDuration(train.saleStartDate.getDateMMDD(),
+                                  departureDate.getDateMMDD());
+  int baseOffsetForDay =
+      dayIndex * (train.stationNum - 1); // FIX: Maybe needed a fix here
+  int startOffsetInBucket = baseOffsetForDay + from_idx;
+
+  int numElementsToQuery = to_idx - from_idx;
+
+  ticketBucketManager.updateTickets(train.ticketBucketID, startOffsetInBucket,
+                                    numElementsToQuery, leftSeats);
 
   return true;
 }
