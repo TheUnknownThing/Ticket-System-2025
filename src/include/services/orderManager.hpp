@@ -25,6 +25,9 @@ struct Order {
   int to_station_idx; // 0-based index
   DateTime
       departureDateTime; // DateTime train departs from train's START station.
+  DateTime departureFromStation; // DateTime train departs from this leg's
+                                 // departure station.
+  DateTime arrivalAtStation;
 
   int price;
   int num;
@@ -34,11 +37,13 @@ struct Order {
   Order() = default;
   Order(const string32 &un, const string32 &tid, const string32 &fr_name,
         int fr_idx, const string32 &to_name, int to_idx,
-        const DateTime &depDateTime, int pr, int n, OrderStatus st, int ts)
+        const DateTime &depDateTime, const DateTime &depFromStation,
+        const DateTime &arrAtStation, int pr, int n, OrderStatus st, int ts)
       : username(un), trainID(tid), from_station_name(fr_name),
         from_station_idx(fr_idx), to_station_name(to_name),
-        to_station_idx(to_idx), departureDateTime(depDateTime), price(pr),
-        num(n), status(st), timestamp(ts) {}
+        to_station_idx(to_idx), departureDateTime(depDateTime),
+        departureFromStation(depFromStation), arrivalAtStation(arrAtStation),
+        price(pr), num(n), status(st), timestamp(ts) {}
 
   bool operator<(const Order &other) const {
     return timestamp > other.timestamp;
@@ -69,14 +74,14 @@ struct Order {
     os << "] ";
 
     os << order.trainID.toString() << " " << order.from_station_name.toString()
-       << " " << order.departureDateTime.getDateString() << " "
-       << order.departureDateTime.getTimeString() << " -> ";
+       << " " << order.departureFromStation.getDateString() << " "
+       << order.departureFromStation.getTimeString() << " -> ";
 
     os << order.to_station_name.toString() << " "
-       << order.departureDateTime.getDateString() << " "
-       << order.departureDateTime.getTimeString();
+       << order.arrivalAtStation.getDateString() << " "
+       << order.arrivalAtStation.getTimeString();
 
-    os << " " << order.price << " " << order.num;
+    os << " " << order.price / order.num << " " << order.num;
 
     return os;
   }
@@ -164,22 +169,34 @@ int OrderManager::buyTicket(const string32 &username, const string32 &trainID,
     return -1; // Invalid number of tickets
   }
 
-  auto [price, origin_date_mmdd, isSuccessful, from_idx, to_idx] =
+  auto [price, origin_date_mmdd, isSuccessful, from_idx, to_idx, depTimeOffset,
+        arrTimeOffset] =
       trainManager_ptr->buyTicket(trainID, trainOriginDepDate, num_tickets,
                                   from_station_name, to_station_name);
 
   if (price != -1 && origin_date_mmdd != -1 && isSuccessful) {
+    DateTime departureFromStation = DateTime(origin_date_mmdd);
+    departureFromStation.addDuration(depTimeOffset);
+    DateTime arrivalAtStation = DateTime(origin_date_mmdd);
+    arrivalAtStation.addDuration(arrTimeOffset);
     Order newOrder(username, trainID, from_station_name, from_idx,
-                   to_station_name, to_idx, trainOriginDepDate, price,
-                   num_tickets, SUCCESS, timestamp);
+                   to_station_name, to_idx, trainOriginDepDate,
+                   departureFromStation, arrivalAtStation, price, num_tickets,
+                   SUCCESS, timestamp);
     orderDB.insert(username, newOrder);
     return price;
   } else {
     if (price != -1 && origin_date_mmdd != -1 && !isSuccessful &&
         queueIfNotAvailable) {
+      DateTime departureFromStation =
+          DateTime(origin_date_mmdd);
+      departureFromStation.addDuration(depTimeOffset);
+      DateTime arrivalAtStation = DateTime(origin_date_mmdd);
+      arrivalAtStation.addDuration(arrTimeOffset);
       Order newOrder(username, trainID, from_station_name, from_idx,
-                     to_station_name, to_idx, trainOriginDepDate, price,
-                     num_tickets, PENDING, timestamp);
+                     to_station_name, to_idx, trainOriginDepDate,
+                     departureFromStation, arrivalAtStation, price, num_tickets,
+                     PENDING, timestamp);
       orderDB.insert(username, newOrder);
       pendingQueue.insert(std::make_pair(trainID, origin_date_mmdd), newOrder);
       return 0; // Pending
@@ -228,7 +245,7 @@ bool OrderManager::refundTicket(const string32 &username,
                                        orderToRefund.departureDateTime,
                                        orderToRefund.num, from_idx, to_idx);
       }
-      // TODO: Now need to process Pending Orders
+      // TODO: Now need to process Pending Orders // FIXED
       processPendingOrders(orderToRefund.trainID,
                            orderToRefund.departureDateTime.getDateMMDD(),
                            from_idx, to_idx, orderToRefund.num);
@@ -257,7 +274,8 @@ void OrderManager::processPendingOrders(const string32 &trainID,
       continue; // Skip orders that request more tickets than available
     }
 
-    auto [price, origin_date_mmdd, isSuccessful, from_idx, to_idx] =
+    auto [price, origin_date_mmdd, isSuccessful, from_idx, to_idx,
+          depTimeOffset, arrTimeOffset] =
         trainManager_ptr->buyTicket(
             trainID, pendingOrder.departureDateTime, pendingOrder.num,
             pendingOrder.from_station_name, pendingOrder.to_station_name);
