@@ -362,7 +362,7 @@ int TrainManager::releaseTrain(const string32 &trainID) {
                     1;
 
   int ticket_bID = ticketBucketManager.addTickets(
-      numSaleDays, trainToRelease.stationNum, trainToRelease.seatNum);
+      numSaleDays, trainToRelease.stationNum - 1, trainToRelease.seatNum);
 
   if (ticket_bID == -1)
     return -1;
@@ -412,13 +412,6 @@ std::string TrainManager::queryTrain(const string32 &trainID,
 
   vector<int> dailyLeftSeats;
   if (train.isReleased) {
-    int dayOffsetInTicketBucket =
-        calcDateDuration(train.saleStartDate.getDateMMDD(),
-                         queryDate.getDateMMDD()) *
-        train.stationNum;
-    dailyLeftSeats = ticketBucketManager.queryTickets(
-        train.ticketBucketID, dayOffsetInTicketBucket,
-        train.stationNum - 1); // FIX: Maybe needed a fix here
     dailyLeftSeats =
         queryLeftSeats(trainID, queryDate, 0, train.stationNum - 1);
   }
@@ -609,11 +602,11 @@ std::string TrainManager::queryTransfer(const string32 &from,
   bool transferFound = false;
 
   // Variables for the best option
-  int bestTotalPrice = std::numeric_limits<int>::max();;
+  int bestTotalPrice = std::numeric_limits<int>::max();
   string32 bestPrice_train1ID_tie = "";
   string32 bestPrice_train2ID_tie = "";
 
-  int bestTotalDuration = std::numeric_limits<int>::max();;
+  int bestTotalDuration = std::numeric_limits<int>::max();
   string32 bestTime_train1ID_tie = "";
   string32 bestTime_train2ID_tie = "";
 
@@ -679,7 +672,7 @@ std::string TrainManager::queryTransfer(const string32 &from,
 
       vector<int> leftSeats_train1_vec = queryLeftSeats(
           train1ID, queryDate, from_idx_train1, transfer_station_idx_train1);
-      int seatsAvailable_train1_leg = std::numeric_limits<int>::max();;
+      int seatsAvailable_train1_leg = std::numeric_limits<int>::max();
 
       for (int seat : leftSeats_train1_vec) {
         seatsAvailable_train1_leg = std::min(seatsAvailable_train1_leg, seat);
@@ -803,7 +796,7 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
       train.stationBucketID, train.stationNum);
   for (int i = 0; i < train.stationNum; ++i) {
     if (train.stationBucketID == -1) {
-      return {-1, -1, false, -1, -1,-1,-1}; // No stations available
+      return {-1, -1, false, -1, -1, -1, -1}; // No stations available
     }
     if (stations[i].name == from_station_name) {
       from_idx = i;
@@ -813,7 +806,7 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
     }
   }
   if (from_idx == -1 || to_idx == -1 || from_idx >= to_idx) {
-    return {-1, -1, false, -1, -1,-1,-1}; // Invalid station names or indices
+    return {-1, -1, false, -1, -1, -1, -1}; // Invalid station names or indices
   }
 
   queryDate -= train.startTime;
@@ -822,7 +815,7 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
   queryDate.addDuration(1440);
   if (queryDate.getDateMMDD() < train.saleStartDate.getDateMMDD() ||
       queryDate.getDateMMDD() > train.saleEndDate.getDateMMDD()) {
-    return {-1, -1, false, -1, -1,-1,-1}; // Not on sale on this date
+    return {-1, -1, false, -1, -1, -1, -1}; // Not on sale on this date
   }
 
   vector<int> leftSeats = queryLeftSeats(trainID, queryDate, from_idx, to_idx);
@@ -858,8 +851,14 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
 
   totalPrice *= num; // Total price for the number of tickets
 
-  return {totalPrice, queryDate.getDateMMDD(), flag, from_idx, to_idx, train.startTime.getTimeMinutes() + stations[from_idx].leavingTimeOffset,
-          train.startTime.getTimeMinutes() + stations[to_idx].arrivalTimeOffset}; // Return the departure time offset
+  return {
+      totalPrice,
+      queryDate.getDateMMDD(),
+      flag,
+      from_idx,
+      to_idx,
+      train.startTime.getTimeMinutes() + stations[from_idx].leavingTimeOffset,
+      train.startTime.getTimeMinutes() + stations[to_idx].arrivalTimeOffset};
 }
 
 bool TrainManager::refundTicket(const string32 &trainID,
