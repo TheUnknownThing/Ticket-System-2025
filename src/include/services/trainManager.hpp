@@ -514,10 +514,8 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
       continue; // Invalid station names or indices
     }
 
-    queryDate -= train.startTime;
     queryDate.minusDuration(
-        stations[from_idx].leavingTimeOffset); // Adjust to train's start time
-    queryDate.addDuration(1440);
+        (stations[from_idx].leavingTimeOffset + train.startTime.getTimeMinutes()) / 1440 * 1440); // Adjust to train's start time
     if (queryDate.getDateMMDD() < train.saleStartDate.getDateMMDD() ||
         queryDate.getDateMMDD() > train.saleEndDate.getDateMMDD()) {
       continue; // Not on sale on this date
@@ -645,10 +643,8 @@ std::string TrainManager::queryTransfer(const string32 &from,
         price_train1_leg += stations_train1[k].price;
       }
 
-      queryDate -= train1_obj.startTime;
       queryDate.minusDuration(
-          stations_train1[from_idx_train1].leavingTimeOffset);
-      queryDate.addDuration(1440);
+        (stations_train1[from_idx_train1].leavingTimeOffset + train1_obj.startTime.getTimeMinutes()) / 1440 * 1440); // Adjust to train's start time
       if (queryDate.getDateMMDD() < train1_obj.saleStartDate.getDateMMDD() ||
           queryDate.getDateMMDD() > train1_obj.saleEndDate.getDateMMDD()) {
         continue; // Not on sale on this date
@@ -809,10 +805,8 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
     return {-1, -1, false, -1, -1, -1, -1}; // Invalid station names or indices
   }
 
-  queryDate -= train.startTime;
   queryDate.minusDuration(
-      stations[from_idx].leavingTimeOffset); // Adjust to train's start time
-  queryDate.addDuration(1440);
+        (stations[from_idx].leavingTimeOffset + train.startTime.getTimeMinutes()) / 1440 * 1440); // Adjust to train's start time
   if (queryDate.getDateMMDD() < train.saleStartDate.getDateMMDD() ||
       queryDate.getDateMMDD() > train.saleEndDate.getDateMMDD()) {
     return {-1, -1, false, -1, -1, -1, -1}; // Not on sale on this date
