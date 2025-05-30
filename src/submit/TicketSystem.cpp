@@ -126,8 +126,7 @@ int main() {
       } else if (command == "query_order") {
         if (!userManager.isLoggedIn(params['u'])) {
           ERROR("query_order failed: user '" + params['u'] + "' not logged in");
-          std::cout << "-1"; // User not logged in
-          continue;
+          std::cout << "-1";
         } else {
           auto result = orderManager.queryOrder(params['u']);
           LOG("query_order operation for user '" + params['u'] + "' returned " +
@@ -146,10 +145,17 @@ int main() {
         }
       } else if (command == "refund_ticket") {
         int n = params.count('n') ? std::stoi(params['n']) : 1;
-        bool result = orderManager.refundTicket(params['u'], n);
-        LOG("refund_ticket operation for user '" + params['u'] + "' ticket #" +
-            std::to_string(n) + " result: " + (result ? "success" : "failed"));
-        std::cout << (result ? "0" : "-1");
+        if (!userManager.isLoggedIn(params['u'])) {
+          ERROR("refund_ticket failed: user '" + params['u'] +
+                "' not logged in");
+          std::cout << "-1";
+        } else {
+          bool result = orderManager.refundTicket(params['u'], n);
+          LOG("refund_ticket operation for user '" + params['u'] +
+              "' ticket #" + std::to_string(n) +
+              " result: " + (result ? "success" : "failed"));
+          std::cout << (result ? "0" : "-1");
+        }
       } else if (command == "clean") {
         LOG("clean operation started");
         userManager.clean();
@@ -169,10 +175,9 @@ int main() {
       }
     } catch (const std::exception &e) {
       ERROR("Exception occurred while processing command '" + command +
-          "': " + e.what());
+            "': " + e.what());
       std::cout << "-1"; // Exception occurred
     }
-
     std::cout << "\n";
   }
   return 0;
