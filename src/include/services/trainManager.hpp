@@ -1016,6 +1016,8 @@ bool TrainManager::updateLeftSeats(const string32 &trainID, DateTime date,
 
   for (int &ticket : tickets) {
     ticket += num; // Update the number of available seats
+    LOG("Current available seats: " + std::to_string(ticket) + "; Previous: " +
+        std::to_string(ticket - num));
     if (ticket < 0) {
       ERROR("Cannot have negative seats");
       return false; // Cannot have negative seats

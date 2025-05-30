@@ -33,6 +33,7 @@ if [ "$clear_logs" = true ]; then
   if [ -d "test_logs" ]; then
     echo "Clearing old test logs..."
     rm -f test_logs/test-*.log
+    rm -f test_logs/cerr-*.log
     rm -f test_logs/diff-*.log
     rm -f test_logs/input-*.in
     rm -f *_node *_data

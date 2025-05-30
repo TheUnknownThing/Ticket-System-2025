@@ -139,7 +139,17 @@ int calcDateDuration(int date1_mmdd, int date2_mmdd) {
   int month2 = date2_mmdd / 100;
   int day2 = date2_mmdd % 100;
 
-  return (month2 - month1) * 30 + (day2 - day1);
+  int ans = 0;
+  if (month1 == month2) {
+    ans = day2 - day1;
+  } else {
+    ans += DAYS_IN_MONTH[month1] - day1; // Days left in month1
+    for (int m = month1 + 1; m < month2; ++m) {
+      ans += DAYS_IN_MONTH[m]; // Full months in between
+    }
+    ans += day2; // Days in month2
+  }
+  return ans;
 }
 
 #endif // DATE_FORMATTER_HPP

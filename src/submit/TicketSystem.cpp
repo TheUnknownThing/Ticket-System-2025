@@ -30,11 +30,6 @@ int main() {
       continue;
     }
 
-    if (timestamp == 7785) {
-      // DEBUG
-      std::cout << "DEBUG" << std::endl;
-    }
-
     LOG("Processing command: " + command +
         " at timestamp: " + std::to_string(timestamp));
 
