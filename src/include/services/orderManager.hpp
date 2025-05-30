@@ -8,6 +8,7 @@
 #include "utils/dateTime.hpp"
 #include "utils/string32.hpp"
 #include <iomanip>
+#include <iostream>
 #include <ostream>
 #include <string>
 
@@ -180,7 +181,7 @@ int OrderManager::buyTicket(const string32 &username, const string32 &trainID,
     DateTime arrivalAtStation = DateTime(origin_date_mmdd);
     arrivalAtStation.addDuration(arrTimeOffset);
     Order newOrder(username, trainID, from_station_name, from_idx,
-                   to_station_name, to_idx, trainOriginDepDate,
+                   to_station_name, to_idx, DateTime(origin_date_mmdd),
                    departureFromStation, arrivalAtStation, price, num_tickets,
                    SUCCESS, timestamp);
     orderDB.insert(username, newOrder);
@@ -188,13 +189,12 @@ int OrderManager::buyTicket(const string32 &username, const string32 &trainID,
   } else {
     if (price != -1 && origin_date_mmdd != -1 && !isSuccessful &&
         queueIfNotAvailable) {
-      DateTime departureFromStation =
-          DateTime(origin_date_mmdd);
+      DateTime departureFromStation = DateTime(origin_date_mmdd);
       departureFromStation.addDuration(depTimeOffset);
       DateTime arrivalAtStation = DateTime(origin_date_mmdd);
       arrivalAtStation.addDuration(arrTimeOffset);
       Order newOrder(username, trainID, from_station_name, from_idx,
-                     to_station_name, to_idx, trainOriginDepDate,
+                     to_station_name, to_idx, DateTime(origin_date_mmdd),
                      departureFromStation, arrivalAtStation, price, num_tickets,
                      PENDING, timestamp);
       orderDB.insert(username, newOrder);
@@ -218,6 +218,8 @@ bool OrderManager::refundTicket(const string32 &username,
   }
 
   Order orderToRefund = userOrders[orderIndex - 1];
+
+  // std::cout << "Refunding order: " << orderToRefund << std::endl;
 
   if (orderToRefund.status == REFUNDED) {
     return false; // Already refunded
@@ -265,21 +267,10 @@ void OrderManager::processPendingOrders(const string32 &trainID,
   }
 
   for (Order pendingOrder : candidates) {
-    if (pendingOrder.from_station_idx < from_idx ||
-        pendingOrder.to_station_idx > to_idx) {
-      continue; // Skip orders that are not within the valid range
-    }
-
-    if (pendingOrder.num > num_tickets) {
-      continue; // Skip orders that request more tickets than available
-    }
-
-    auto [price, origin_date_mmdd, isSuccessful, from_idx, to_idx,
-          depTimeOffset, arrTimeOffset] =
-        trainManager_ptr->buyTicket(
-            trainID, pendingOrder.departureDateTime, pendingOrder.num,
-            pendingOrder.from_station_name, pendingOrder.to_station_name);
-    if (price != -1 && origin_date_mmdd != -1 && isSuccessful) {
+    auto isSuccessful = trainManager_ptr->updateLeftSeats(
+        trainID, pendingOrder.departureDateTime, pendingOrder.from_station_idx,
+        pendingOrder.to_station_idx, -pendingOrder.num);
+    if (isSuccessful) {
       // remove from pending, update order status to SUCCESS
       orderDB.remove(pendingOrder.username, pendingOrder);
       pendingQueue.remove(std::make_pair(trainID, origin_date_mmdd),

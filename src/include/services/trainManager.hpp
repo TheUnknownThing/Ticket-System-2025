@@ -161,6 +161,10 @@ private:
                              const int from_station_idx,
                              const int to_station_idx);
 
+  bool updateLeftSeats(const string32 &trainID, DateTime date,
+                       const int from_station_idx, const int to_station_idx,
+                       int num);
+
   vector<TicketCandidate> querySingle(const string32 &from, const string32 &to,
                                       const DateTime &date,
                                       const std::string &sortBy = "time");
@@ -464,9 +468,6 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
                                                   const string32 &to,
                                                   const DateTime &date,
                                                   const std::string &sortBy) {
-  // !important: FIX NEEDED:
-  // 1. The query date should be the date of the train's START station. // FIXED
-
   DateTime queryDate = date;
 
   auto fromTrains = ticketLookupDB.find(from);
@@ -514,8 +515,9 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
       continue; // Invalid station names or indices
     }
 
-    queryDate.minusDuration(
-        (stations[from_idx].leavingTimeOffset + train.startTime.getTimeMinutes()) / 1440 * 1440); // Adjust to train's start time
+    queryDate.minusDuration((stations[from_idx].leavingTimeOffset +
+                             train.startTime.getTimeMinutes()) /
+                            1440 * 1440); // Adjust to train's start time
     if (queryDate.getDateMMDD() < train.saleStartDate.getDateMMDD() ||
         queryDate.getDateMMDD() > train.saleEndDate.getDateMMDD()) {
       continue; // Not on sale on this date
@@ -543,10 +545,6 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
                          train.startTime.getTimeMinutes());
     endDateTime.addDuration(stations[to_idx].arrivalTimeOffset);
 
-    // trainDetails.push_back(
-    //     std::make_tuple(train.trainID, totalPrice, stations[from_idx].name,
-    //                     stations[to_idx].name, duration, departureDateTime,
-    //                     endDateTime, seatsAvailable));
     trainDetails.push_back(TicketCandidate(
         train.trainID, totalPrice, duration, stations[from_idx].name,
         stations[to_idx].name, departureDateTime, endDateTime, seatsAvailable));
@@ -644,7 +642,9 @@ std::string TrainManager::queryTransfer(const string32 &from,
       }
 
       queryDate.minusDuration(
-        (stations_train1[from_idx_train1].leavingTimeOffset + train1_obj.startTime.getTimeMinutes()) / 1440 * 1440); // Adjust to train's start time
+          (stations_train1[from_idx_train1].leavingTimeOffset +
+           train1_obj.startTime.getTimeMinutes()) /
+          1440 * 1440); // Adjust to train's start time
       if (queryDate.getDateMMDD() < train1_obj.saleStartDate.getDateMMDD() ||
           queryDate.getDateMMDD() > train1_obj.saleEndDate.getDateMMDD()) {
         continue; // Not on sale on this date
@@ -746,7 +746,7 @@ std::string TrainManager::queryTransfer(const string32 &from,
   }
 
   if (!transferFound) {
-    return "-1";
+    return "";
   }
 
   std::ostringstream oss;
@@ -769,11 +769,6 @@ std::tuple<int, int, bool, int, int, int, int>
 TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
                         int num, const string32 &from_station_name,
                         const string32 &to_station_name) {
-  // !important: need fix here.
-  // 1. Transform depatureDate to actual departure date of the TRAIN. // FIXED
-  // 2. Return the departure date of TRAIN. // FIXED
-  // 3. If NUM exceeds the number of seats available, return false. // FIXED
-
   DateTime queryDate = departureDate;
 
   auto foundTrains = trainDB.find(trainID);
@@ -805,38 +800,15 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
     return {-1, -1, false, -1, -1, -1, -1}; // Invalid station names or indices
   }
 
-  queryDate.minusDuration(
-        (stations[from_idx].leavingTimeOffset + train.startTime.getTimeMinutes()) / 1440 * 1440); // Adjust to train's start time
+  queryDate.minusDuration((stations[from_idx].leavingTimeOffset +
+                           train.startTime.getTimeMinutes()) /
+                          1440 * 1440); // Adjust to train's start time
   if (queryDate.getDateMMDD() < train.saleStartDate.getDateMMDD() ||
       queryDate.getDateMMDD() > train.saleEndDate.getDateMMDD()) {
     return {-1, -1, false, -1, -1, -1, -1}; // Not on sale on this date
   }
 
-  vector<int> leftSeats = queryLeftSeats(trainID, queryDate, from_idx, to_idx);
-  bool flag = true;
-  for (int seat : leftSeats) {
-    if (seat < num) {
-      flag = false;
-    }
-  }
-  if (flag) {
-    // we can buy the tickets
-    vector<int> updatedSeats = leftSeats;
-    for (int i = 0; i < leftSeats.size(); ++i) {
-      updatedSeats[i] -= num;
-    }
-
-    int dayIndex = calcDateDuration(train.saleStartDate.getDateMMDD(),
-                                    queryDate.getDateMMDD());
-    int baseOffsetForDay =
-        dayIndex * (train.stationNum - 1); // FIX: Maybe needed a fix here
-    int startOffsetInBucket = baseOffsetForDay + from_idx;
-
-    int numElementsToQuery = to_idx - from_idx;
-
-    ticketBucketManager.updateTickets(train.ticketBucketID, startOffsetInBucket,
-                                      numElementsToQuery, updatedSeats);
-  }
+  bool flag = updateLeftSeats(trainID, queryDate, from_idx, to_idx, -num);
 
   int totalPrice = 0;
   for (int i = from_idx + 1; i <= to_idx; ++i) {
@@ -863,27 +835,7 @@ bool TrainManager::refundTicket(const string32 &trainID,
   if (foundTrains.empty() || !foundTrains[0].isReleased)
     return false;
   Train train = foundTrains[0];
-  vector<int> leftSeats =
-      queryLeftSeats(trainID, departureDate, from_idx, to_idx);
-  if (leftSeats.empty() || from_idx < 0 || to_idx > train.stationNum ||
-      from_idx >= to_idx) {
-    return false;
-  }
-  for (int i = 0; i < to_idx - from_idx; ++i) {
-    leftSeats[i] += num;
-  }
-  int dayIndex = calcDateDuration(train.saleStartDate.getDateMMDD(),
-                                  departureDate.getDateMMDD());
-  int baseOffsetForDay =
-      dayIndex * (train.stationNum - 1); // FIX: Maybe needed a fix here
-  int startOffsetInBucket = baseOffsetForDay + from_idx;
-
-  int numElementsToQuery = to_idx - from_idx;
-
-  ticketBucketManager.updateTickets(train.ticketBucketID, startOffsetInBucket,
-                                    numElementsToQuery, leftSeats);
-
-  return true;
+  return updateLeftSeats(trainID, departureDate, from_idx, to_idx, num);
 }
 
 vector<int> TrainManager::queryLeftSeats(const string32 &trainID, DateTime date,
@@ -904,8 +856,7 @@ vector<int> TrainManager::queryLeftSeats(const string32 &trainID, DateTime date,
   if (dayIndex < 0)
     return vector<int>(); // Date is before sale starts
 
-  int baseOffsetForDay =
-      dayIndex * (train.stationNum - 1); // FIX: Maybe needed a fix here
+  int baseOffsetForDay = dayIndex * (train.stationNum - 1);
   int startOffsetInBucket = baseOffsetForDay + from_station_idx;
 
   int numElementsToQuery = to_station_idx - from_station_idx;
@@ -914,6 +865,45 @@ vector<int> TrainManager::queryLeftSeats(const string32 &trainID, DateTime date,
 
   return ticketBucketManager.queryTickets(
       train.ticketBucketID, startOffsetInBucket, numElementsToQuery);
+}
+
+bool TrainManager::updateLeftSeats(const string32 &trainID, DateTime date,
+                                   const int from_station_idx,
+                                   const int to_station_idx, int num) {
+  auto foundTrains = trainDB.find(trainID);
+  if (foundTrains.empty()) {
+    return false; // No such train
+  }
+  Train train = foundTrains[0];
+  if (!train.isReleased) {
+    return false;
+  }
+
+  int dayIndex =
+      calcDateDuration(train.saleStartDate.getDateMMDD(), date.getDateMMDD());
+  if (dayIndex < 0)
+    return false; // Date is before sale starts
+
+  int baseOffsetForDay = dayIndex * (train.stationNum - 1);
+  int startOffsetInBucket = baseOffsetForDay + from_station_idx;
+
+  int numElementsToQuery = to_station_idx - from_station_idx;
+  if (numElementsToQuery <= 0)
+    return false;
+
+  auto tickets = ticketBucketManager.queryTickets(
+      train.ticketBucketID, startOffsetInBucket, numElementsToQuery);
+
+  for (int &ticket : tickets) {
+    ticket += num; // Update the number of available seats
+    if (ticket < 0) {
+      return false; // Cannot have negative seats
+    }
+  }
+
+  ticketBucketManager.updateTickets(train.ticketBucketID, startOffsetInBucket,
+                                    numElementsToQuery, tickets);
+  return true;
 }
 
 #endif // TRAIN_MANAGER_HPP
