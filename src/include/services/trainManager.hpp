@@ -532,7 +532,7 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
 
     vector<int> leftSeats =
         queryLeftSeats(trainID, queryDate, from_idx, to_idx);
-    int seatsAvailable = INT_MAX;
+    int seatsAvailable = std::numeric_limits<int>::max();
     for (int seat : leftSeats) {
       seatsAvailable = std::min(seatsAvailable, seat);
     }
@@ -609,11 +609,11 @@ std::string TrainManager::queryTransfer(const string32 &from,
   bool transferFound = false;
 
   // Variables for the best option
-  int bestTotalPrice = INT_MAX;
+  int bestTotalPrice = std::numeric_limits<int>::max();;
   string32 bestPrice_train1ID_tie = "";
   string32 bestPrice_train2ID_tie = "";
 
-  int bestTotalDuration = INT_MAX;
+  int bestTotalDuration = std::numeric_limits<int>::max();;
   string32 bestTime_train1ID_tie = "";
   string32 bestTime_train2ID_tie = "";
 
@@ -679,7 +679,7 @@ std::string TrainManager::queryTransfer(const string32 &from,
 
       vector<int> leftSeats_train1_vec = queryLeftSeats(
           train1ID, queryDate, from_idx_train1, transfer_station_idx_train1);
-      int seatsAvailable_train1_leg = INT_MAX;
+      int seatsAvailable_train1_leg = std::numeric_limits<int>::max();;
 
       for (int seat : leftSeats_train1_vec) {
         seatsAvailable_train1_leg = std::min(seatsAvailable_train1_leg, seat);

@@ -94,7 +94,11 @@ int main() {
           auto result = orderManager.buyTicket(
               params['u'], params['i'], params['d'], std::stoi(params['n']),
               params['f'], params['t'], queue, timestamp);
-          std::cout << result;
+          if (result == 0) {
+            std::cout << "queue";
+          } else {
+            std::cout << result;
+          }
         }
       } else if (command == "query_order") {
         if (!userManager.isLoggedIn(params['u'])) {
