@@ -11,7 +11,7 @@ using sjtu::map;
 
 int main() {
   //freopen("../test/TicketSystem/21.in", "r", stdin);
-  //freopen("cerr.log", "w", stderr);
+  freopen("cerr.log", "w", stderr);
 
   UserManager userManager("users");
   TrainManager trainManager("trains");

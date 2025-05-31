@@ -124,6 +124,18 @@ public:
     time_minutes = current_time;
   }
 
+  int calcDuration(const DateTime &other) const {
+    if (!hasDate() || !other.hasDate())
+      return -1; // Invalid duration if either date is not set
+
+    int this_date = date_mmdd;
+    int other_date = other.date_mmdd;
+    int this_time = time_minutes;
+    int other_time = other.time_minutes;
+
+    return std::abs((this_date - other_date) * 1440 + (this_time - other_time));
+  }
+
   bool isValid() const { return hasDate() || hasTime(); }
 
   bool operator<(const DateTime &other) const {

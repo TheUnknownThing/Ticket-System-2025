@@ -794,54 +794,47 @@ std::string TrainManager::queryTransfer(const string32 &from,
           continue;
         }
 
-        if (!(ticket2.departureDateTime >
-              arrivalAtTransferDateTime_train1_leg)) {
+        if (!(ticket2.departureDateTime >=
+          arrivalAtTransferDateTime_train1_leg)) {
           LOG("Skipping second leg: " + ticket2.trainID.toString() +
-              " due to invalid departure time after first leg");
+          " due to invalid departure time after first leg");
           continue;
         }
 
+        int currentTotalPrice = ticket1.price + ticket2.price;
+        int currentTotalDuration = ticket1.duration + ticket2.duration +
+                   ticket2.departureDateTime.calcDuration(
+                   arrivalAtTransferDateTime_train1_leg);
+
         if (sortBy == "cost") {
-          int currentTotalPrice = ticket1.price + ticket2.price;
-          if (!transferFound || currentTotalPrice < bestTotalPrice) {
-            bestTotalPrice = currentTotalPrice;
-            bestPrice_train1ID_tie = ticket1.trainID;
-            bestPrice_train2ID_tie = ticket2.trainID;
-            bestLeg1Candidate = ticket1;
-            bestLeg2Candidate = ticket2;
-            transferFound = true;
-          } else if (currentTotalPrice == bestTotalPrice) {
-            if (ticket1.trainID < bestPrice_train1ID_tie) {
-              bestPrice_train1ID_tie = ticket1.trainID;
-              bestPrice_train2ID_tie = ticket2.trainID;
-              bestLeg1Candidate = ticket1;
-              bestLeg2Candidate = ticket2;
-            } else if (ticket1.trainID == bestPrice_train1ID_tie &&
-                       ticket2.trainID < bestPrice_train2ID_tie) {
-              bestPrice_train2ID_tie = ticket2.trainID;
-              bestLeg2Candidate = ticket2;
-            }
+          // Cost as primary, time as secondary, train1 ID as tertiary, train2 ID as quaternary
+          if (!transferFound || 
+          currentTotalPrice < bestTotalPrice ||
+          (currentTotalPrice == bestTotalPrice && currentTotalDuration < bestTotalDuration) ||
+          (currentTotalPrice == bestTotalPrice && currentTotalDuration == bestTotalDuration && ticket1.trainID < bestPrice_train1ID_tie) ||
+          (currentTotalPrice == bestTotalPrice && currentTotalDuration == bestTotalDuration && ticket1.trainID == bestPrice_train1ID_tie && ticket2.trainID < bestPrice_train2ID_tie)) {
+        bestTotalPrice = currentTotalPrice;
+        bestTotalDuration = currentTotalDuration;
+        bestPrice_train1ID_tie = ticket1.trainID;
+        bestPrice_train2ID_tie = ticket2.trainID;
+        bestLeg1Candidate = ticket1;
+        bestLeg2Candidate = ticket2;
+        transferFound = true;
           }
         } else if (sortBy == "time") {
-          int currentTotalDuration = ticket1.duration + ticket2.duration;
-          if (!transferFound || currentTotalDuration < bestTotalDuration) {
-            bestTotalDuration = currentTotalDuration;
-            bestTime_train1ID_tie = ticket1.trainID;
-            bestTime_train2ID_tie = ticket2.trainID;
-            bestLeg1Candidate = ticket1;
-            bestLeg2Candidate = ticket2;
-            transferFound = true;
-          } else if (currentTotalDuration == bestTotalDuration) {
-            if (ticket1.trainID < bestTime_train1ID_tie) {
-              bestTime_train1ID_tie = ticket1.trainID;
-              bestTime_train2ID_tie = ticket2.trainID;
-              bestLeg1Candidate = ticket1;
-              bestLeg2Candidate = ticket2;
-            } else if (ticket1.trainID == bestTime_train1ID_tie &&
-                       ticket2.trainID < bestTime_train2ID_tie) {
-              bestTime_train2ID_tie = ticket2.trainID;
-              bestLeg2Candidate = ticket2;
-            }
+          // Time as primary, cost as secondary, train1 ID as tertiary, train2 ID as quaternary
+          if (!transferFound || 
+          currentTotalDuration < bestTotalDuration ||
+          (currentTotalDuration == bestTotalDuration && currentTotalPrice < bestTotalPrice) ||
+          (currentTotalDuration == bestTotalDuration && currentTotalPrice == bestTotalPrice && ticket1.trainID < bestTime_train1ID_tie) ||
+          (currentTotalDuration == bestTotalDuration && currentTotalPrice == bestTotalPrice && ticket1.trainID == bestTime_train1ID_tie && ticket2.trainID < bestTime_train2ID_tie)) {
+        bestTotalDuration = currentTotalDuration;
+        bestTotalPrice = currentTotalPrice;
+        bestTime_train1ID_tie = ticket1.trainID;
+        bestTime_train2ID_tie = ticket2.trainID;
+        bestLeg1Candidate = ticket1;
+        bestLeg2Candidate = ticket2;
+        transferFound = true;
           }
         }
       }
@@ -851,57 +844,51 @@ std::string TrainManager::queryTransfer(const string32 &from,
           continue;
         }
 
-        if (!(ticket2.departureDateTime >
-              arrivalAtTransferDateTime_train1_leg)) {
+        if (!(ticket2.departureDateTime >=
+          arrivalAtTransferDateTime_train1_leg)) {
           LOG("Skipping second leg: " + ticket2.trainID.toString() +
-              " due to invalid departure time after first leg");
+          " due to invalid departure time after first leg");
           continue;
         }
 
+        int currentTotalPrice = ticket1.price + ticket2.price;
+        int currentTotalDuration = ticket1.duration + ticket2.duration +
+                   ticket2.departureDateTime.calcDuration(
+                   arrivalAtTransferDateTime_train1_leg);
+
         if (sortBy == "cost") {
-          int currentTotalPrice = ticket1.price + ticket2.price;
-          if (!transferFound || currentTotalPrice < bestTotalPrice) {
-            bestTotalPrice = currentTotalPrice;
-            bestPrice_train1ID_tie = ticket1.trainID;
-            bestPrice_train2ID_tie = ticket2.trainID;
-            bestLeg1Candidate = ticket1;
-            bestLeg2Candidate = ticket2;
-            transferFound = true;
-          } else if (currentTotalPrice == bestTotalPrice) {
-            if (ticket1.trainID < bestPrice_train1ID_tie) {
-              bestPrice_train1ID_tie = ticket1.trainID;
-              bestPrice_train2ID_tie = ticket2.trainID;
-              bestLeg1Candidate = ticket1;
-              bestLeg2Candidate = ticket2;
-            } else if (ticket1.trainID == bestPrice_train1ID_tie &&
-                       ticket2.trainID < bestPrice_train2ID_tie) {
-              bestPrice_train2ID_tie = ticket2.trainID;
-              bestLeg2Candidate = ticket2;
-            }
+          // Cost as primary, time as secondary, train1 ID as tertiary, train2 ID as quaternary
+          if (!transferFound || 
+          currentTotalPrice < bestTotalPrice ||
+          (currentTotalPrice == bestTotalPrice && currentTotalDuration < bestTotalDuration) ||
+          (currentTotalPrice == bestTotalPrice && currentTotalDuration == bestTotalDuration && ticket1.trainID < bestPrice_train1ID_tie) ||
+          (currentTotalPrice == bestTotalPrice && currentTotalDuration == bestTotalDuration && ticket1.trainID == bestPrice_train1ID_tie && ticket2.trainID < bestPrice_train2ID_tie)) {
+        bestTotalPrice = currentTotalPrice;
+        bestTotalDuration = currentTotalDuration;
+        bestPrice_train1ID_tie = ticket1.trainID;
+        bestPrice_train2ID_tie = ticket2.trainID;
+        bestLeg1Candidate = ticket1;
+        bestLeg2Candidate = ticket2;
+        transferFound = true;
           }
         } else if (sortBy == "time") {
-          int currentTotalDuration = ticket1.duration + ticket2.duration;
-          if (!transferFound || currentTotalDuration < bestTotalDuration) {
-            bestTotalDuration = currentTotalDuration;
-            bestTime_train1ID_tie = ticket1.trainID;
-            bestTime_train2ID_tie = ticket2.trainID;
-            bestLeg1Candidate = ticket1;
-            bestLeg2Candidate = ticket2;
-            transferFound = true;
-          } else if (currentTotalDuration == bestTotalDuration) {
-            if (ticket1.trainID < bestTime_train1ID_tie) {
-              bestTime_train1ID_tie = ticket1.trainID;
-              bestTime_train2ID_tie = ticket2.trainID;
-              bestLeg1Candidate = ticket1;
-              bestLeg2Candidate = ticket2;
-            } else if (ticket1.trainID == bestTime_train1ID_tie &&
-                       ticket2.trainID < bestTime_train2ID_tie) {
-              bestTime_train2ID_tie = ticket2.trainID;
-              bestLeg2Candidate = ticket2;
-            }
+          // Time as primary, cost as secondary, train1 ID as tertiary, train2 ID as quaternary
+          if (!transferFound || 
+          currentTotalDuration < bestTotalDuration ||
+          (currentTotalDuration == bestTotalDuration && currentTotalPrice < bestTotalPrice) ||
+          (currentTotalDuration == bestTotalDuration && currentTotalPrice == bestTotalPrice && ticket1.trainID < bestTime_train1ID_tie) ||
+          (currentTotalDuration == bestTotalDuration && currentTotalPrice == bestTotalPrice && ticket1.trainID == bestTime_train1ID_tie && ticket2.trainID < bestTime_train2ID_tie)) {
+        bestTotalDuration = currentTotalDuration;
+        bestTotalPrice = currentTotalPrice;
+        bestTime_train1ID_tie = ticket1.trainID;
+        bestTime_train2ID_tie = ticket2.trainID;
+        bestLeg1Candidate = ticket1;
+        bestLeg2Candidate = ticket2;
+        transferFound = true;
           }
         }
       }
+
     }
   }
 
