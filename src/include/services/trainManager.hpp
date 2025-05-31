@@ -528,9 +528,6 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
                                                   const std::string &sortBy) {
   LOG("Querying single route from " + from.toString() + " to " + to.toString() +
       " using sortBy: " + sortBy);
-
-  DateTime queryDate = date;
-
   auto fromTrains = ticketLookupDB.find(from);
   auto toTrains = ticketLookupDB.find(to);
 
@@ -577,6 +574,7 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
       continue; // Invalid station names or indices
     }
 
+    DateTime queryDate = date;
     queryDate.minusDuration((stations[from_idx].leavingTimeOffset +
                              train.startTime.getTimeMinutes()) /
                             1440 * 1440); // Adjust to train's start time
@@ -674,8 +672,6 @@ std::string TrainManager::queryTransfer(const string32 &from,
   LOG("Querying transfer from " + from.toString() + " to " + to.toString() +
       " on " + date_s32.toString() + " sorted by " + sortBy);
 
-  DateTime queryDate(date_s32); // Parse "mm-dd" string
-
   TicketCandidate bestLeg1Candidate;
   TicketCandidate bestLeg2Candidate;
   bool transferFound = false;
@@ -724,6 +720,7 @@ std::string TrainManager::queryTransfer(const string32 &from,
         price_train1_leg += stations_train1[k].price;
       }
 
+      DateTime queryDate(date_s32); // Parse "mm-dd" string
       queryDate.minusDuration(
           (stations_train1[from_idx_train1].leavingTimeOffset +
            train1_obj.startTime.getTimeMinutes()) /
@@ -859,8 +856,6 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
       trainID.toString() + " from " + from_station_name.toString() + " to " +
       to_station_name.toString());
 
-  DateTime queryDate = departureDate;
-
   auto foundTrains = trainDB.find(trainID);
   if (foundTrains.empty() || !foundTrains[0].isReleased) {
     ERROR("Train not found or not released: " + trainID.toString());
@@ -896,6 +891,7 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
     return {-1, -1, false, -1, -1, -1, -1}; // Invalid station names or indices
   }
 
+  DateTime queryDate = departureDate;
   queryDate.minusDuration((stations[from_idx].leavingTimeOffset +
                            train.startTime.getTimeMinutes()) /
                           1440 * 1440); // Adjust to train's start time
