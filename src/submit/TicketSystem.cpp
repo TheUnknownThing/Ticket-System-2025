@@ -12,7 +12,7 @@ using sjtu::map;
 int main() {
   // use test/TicketSystem/2.in as input
   // freopen("../test/TicketSystem/2.in", "r", stdin);
-  // freopen("cerr.log", "w", stderr);
+  //freopen("cerr.log", "w", stderr);
 
   UserManager userManager("users");
   TrainManager trainManager("trains");
@@ -135,9 +135,9 @@ int main() {
             std::cout << "0";
           } else {
             std::cout << result.size() << "\n";
-            for (int i = 0; i < result.size(); ++i) {
+            for (int i = result.size() - 1; i >= 0; --i) {
               std::cout << result[i];
-              if (i < result.size() - 1) {
+              if (i > 0) {
                 std::cout << "\n";
               }
             }

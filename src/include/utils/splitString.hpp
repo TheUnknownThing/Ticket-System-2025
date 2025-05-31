@@ -3,6 +3,7 @@
 
 #include "stl/vector.hpp"
 #include "utils/string32.hpp"
+#include "utils/logger.hpp"
 #include <sstream>
 #include <string>
 

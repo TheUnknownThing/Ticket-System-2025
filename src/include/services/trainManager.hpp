@@ -170,7 +170,8 @@ private:
 
   vector<TicketCandidate> querySingle(const string32 &from, const string32 &to,
                                       const DateTime &date,
-                                      const std::string &sortBy = "time");
+                                      const std::string &sortBy = "time",
+                                      bool isTransfer = false);
 };
 
 int StationBucketManager::addStations(vector<Station> &stations) {
@@ -246,8 +247,8 @@ void TicketBucketManager::updateTickets(int bucketID, int offset,
 TrainManager::TrainManager(const std::string &trainFile)
     : trainDB(trainFile + "_train", string32::string32_MAX()),
       ticketLookupDB(trainFile + "_ticket_lookup", string32::string32_MAX()),
-      stationBucketManager(trainFile + "_station_bucket_data"),
-      ticketBucketManager(trainFile + "_ticket_bucket_data") {
+      stationBucketManager(trainFile + "_station_bucket"),
+      ticketBucketManager(trainFile + "_ticket_bucket") {
   LOG("TrainManager initialized with file prefix: " + trainFile);
 }
 
@@ -365,7 +366,11 @@ int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
   newTrain.isReleased = false;
 
   trainDB.insert(trainID, newTrain);
-  LOG("Successfully added train: " + trainID.toString());
+  LOG("Successfully added train: " + trainID.toString() + " with " +
+      std::to_string(stationNum_val) + " stations and " +
+      std::to_string(seatNum_val) + " seats, starting at " +
+      trainStartTime.toString() + " from " + saleStartDt.toString() + " to " +
+      saleEndDt.toString());
   return 0;
 }
 
@@ -422,6 +427,8 @@ int TrainManager::releaseTrain(const string32 &trainID) {
       trainToRelease.stationBucketID, trainToRelease.stationNum);
   for (int i = 0; i < trainToRelease.stationNum; ++i) {
     // Update ticket lookup for each station
+    LOG("Inserting ticket lookup for station: " + stations[i].name.toString() +
+        " with train ID: " + trainToRelease.trainID.toString());
     ticketLookupDB.insert(stations[i].name, trainToRelease.trainID);
   }
 
@@ -525,7 +532,8 @@ std::string TrainManager::queryTrain(const string32 &trainID,
 vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
                                                   const string32 &to,
                                                   const DateTime &date,
-                                                  const std::string &sortBy) {
+                                                  const std::string &sortBy,
+                                                  bool isTransfer) {
   LOG("Querying single route from " + from.toString() + " to " + to.toString() +
       " using sortBy: " + sortBy);
   auto fromTrains = ticketLookupDB.find(from);
@@ -534,9 +542,13 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
   map<string32, int> trainCountMap; // trainID -> count of matching trains
   vector<string32> matchingTrainIDs;
   for (const auto &trainID : fromTrains) {
+    LOG("Found train " + trainID.toString() + " for from station " +
+        from.toString());
     trainCountMap[trainID] = 1;
   }
   for (const auto &trainID : toTrains) {
+    LOG("Found matching train " + trainID.toString() + " for to station " +
+        to.toString());
     if (trainCountMap.find(trainID) != trainCountMap.end()) {
       matchingTrainIDs.push_back(trainID);
     }
@@ -578,9 +590,17 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
     queryDate.minusDuration((stations[from_idx].leavingTimeOffset +
                              train.startTime.getTimeMinutes()) /
                             1440 * 1440); // Adjust to train's start time
-    if (queryDate.getDateMMDD() < train.saleStartDate.getDateMMDD() ||
-        queryDate.getDateMMDD() > train.saleEndDate.getDateMMDD()) {
-      continue; // Not on sale on this date
+    if (isTransfer) {
+      if (queryDate.getDateMMDD() < train.saleStartDate.getDateMMDD()) {
+        queryDate = train.saleStartDate; // Use sale start date
+      } else if (queryDate.getDateMMDD() > train.saleEndDate.getDateMMDD()) {
+        continue;
+      }
+    } else {
+      if (queryDate.getDateMMDD() < train.saleStartDate.getDateMMDD() ||
+          queryDate.getDateMMDD() > train.saleEndDate.getDateMMDD()) {
+        continue; // Not on sale on this date
+      }
     }
 
     vector<int> leftSeats =
@@ -716,7 +736,7 @@ std::string TrainManager::queryTransfer(const string32 &from,
           stations_train1[transfer_station_idx_train1];
 
       int price_train1_leg = 0;
-      for (int k = from_idx_train1; k < transfer_station_idx_train1; ++k) {
+      for (int k = from_idx_train1 + 1; k <= transfer_station_idx_train1; ++k) {
         price_train1_leg += stations_train1[k].price;
       }
 
@@ -754,10 +774,6 @@ std::string TrainManager::queryTransfer(const string32 &from,
         seatsAvailable_train1_leg = std::min(seatsAvailable_train1_leg, seat);
       }
 
-      if (seatsAvailable_train1_leg <= 0) {
-        continue; // No seats on this leg of train1
-      }
-
       TicketCandidate ticket1(
           train1_obj.trainID, price_train1_leg, duration_train1_leg,
           stations_train1[from_idx_train1].name, transferStation.name,
@@ -766,7 +782,7 @@ std::string TrainManager::queryTransfer(const string32 &from,
 
       vector<TicketCandidate> secondLegCandidates =
           querySingle(transferStation.name, to,
-                      arrivalAtTransferDateTime_train1_leg, sortBy);
+                      arrivalAtTransferDateTime_train1_leg, sortBy, true);
 
       for (const auto &ticket2 : secondLegCandidates) {
         if (ticket2.trainID == train1_obj.trainID) {

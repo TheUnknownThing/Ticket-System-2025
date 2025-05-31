@@ -48,11 +48,11 @@ struct Order {
         price(pr), num(n), status(st), timestamp(ts) {}
 
   bool operator<(const Order &other) const {
-    return timestamp > other.timestamp;
+    return timestamp < other.timestamp;
   }
 
   bool operator<=(const Order &other) const {
-    return timestamp >= other.timestamp;
+    return timestamp <= other.timestamp;
   }
 
   bool operator==(const Order &other) const {
@@ -244,7 +244,7 @@ bool OrderManager::refundTicket(const string32 &username,
     return false;
   }
 
-  Order orderToRefund = userOrders[orderIndex - 1];
+  Order orderToRefund = userOrders[userOrders.size() - orderIndex];
 
   // std::cout << "Refunding order: " << orderToRefund << std::endl;
 

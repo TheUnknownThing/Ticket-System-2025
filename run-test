@@ -9,6 +9,10 @@ while [[ $# -gt 0 ]]; do
       clear_logs=true
       shift
       ;;
+    --always-continue)
+      always_continue=true
+      shift
+      ;;
     -*)
       echo "Unknown option $1"
       exit 1
@@ -128,7 +132,12 @@ for i in $list; do
     save_input_file "$testcase_group" "$i"
     echo "Test failed on input #$i."
     echo "Output saved to $backup"
-    exit 1
+    if [ "$always_continue" != true ]; then
+      echo "Exiting due to failure. Use --always-continue to ignore this."
+      exit 1
+    else
+      echo "Continuing to next test case..."
+    fi
   fi
   rm "$outfile" "$difffile"
 done
