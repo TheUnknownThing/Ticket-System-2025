@@ -10,15 +10,15 @@
 namespace sjtu {
 class string32 {
 private:
-  char s[33];
+  char s[41];
 
 public:
   string32() { s[0] = '\0'; }
 
   string32(const char *str) {
     if (str) {
-      strncpy(s, str, 32);
-      s[32] = '\0';
+      strncpy(s, str, 40);
+      s[40] = '\0';
     } else {
       s[0] = '\0';
     }
@@ -26,8 +26,8 @@ public:
 
   string32(const std::string& str) {
     if (!str.empty()) {
-      strncpy(s, str.c_str(), 32);
-      s[32] = '\0';
+      strncpy(s, str.c_str(), 40);
+      s[40] = '\0';
     } else {
       s[0] = '\0';
     }
@@ -44,8 +44,8 @@ public:
 
   string32 &operator=(const std::string &str) {
     if (!str.empty()) {
-      strncpy(s, str.c_str(), 32);
-      s[32] = '\0';
+      strncpy(s, str.c_str(), 40);
+      s[40] = '\0';
     } else {
       s[0] = '\0';
     }
@@ -54,8 +54,8 @@ public:
 
   string32 &operator=(const char *str) {
     if (str) {
-      strncpy(s, str, 32);
-      s[32] = '\0';
+      strncpy(s, str, 40);
+      s[40] = '\0';
     } else {
       s[0] = '\0';
     }
@@ -63,13 +63,13 @@ public:
   }
 
   char &operator[](size_t index) {
-    if (index >= 32)
+    if (index >= 40)
       throw std::out_of_range("Index out of bounds");
     return s[index];
   }
 
   const char &operator[](size_t index) const {
-    if (index >= 32)
+    if (index >= 40)
       throw std::out_of_range("Index out of bounds");
     return s[index];
   }
@@ -82,24 +82,24 @@ public:
 
   bool empty() const { return s[0] == '\0'; }
 
-  static constexpr size_t max_size() { return 32; }
+  static constexpr size_t max_size() { return 40; }
 
   void clear() { s[0] = '\0'; }
 
   string32 &append(const string32 &other) {
     size_t current_size = size();
-    size_t copy_len = std::min(32 - current_size, other.size());
+    size_t copy_len = std::min(40 - current_size, other.size());
     strncat(s, other.s, copy_len);
-    s[32] = '\0';
+    s[40] = '\0';
     return *this;
   }
 
   string32 &append(const char *str) {
     if (str) {
       size_t current_size = size();
-      size_t copy_len = std::min(32 - current_size, strlen(str));
+      size_t copy_len = std::min(40 - current_size, strlen(str));
       strncat(s, str, copy_len);
-      s[32] = '\0';
+      s[40] = '\0';
     }
     return *this;
   }
@@ -132,7 +132,7 @@ public:
     return strcmp(s, other.s) >= 0;
   }
 
-  string32 substr(size_t pos, size_t len = 32) const {
+  string32 substr(size_t pos, size_t len = 40) const {
     if (pos >= size()) {
       throw std::out_of_range("Position out of range");
     }
@@ -148,10 +148,10 @@ public:
 
   static string32 string32_MAX() {
     string32 max_str;
-    for (size_t i = 0; i < 32; ++i) {
+    for (size_t i = 0; i < 40; ++i) {
       max_str.s[i] = 126;
     }
-    max_str.s[32] = '\0';
+    max_str.s[40] = '\0';
     return max_str;
   }
 

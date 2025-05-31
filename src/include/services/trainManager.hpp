@@ -784,6 +784,11 @@ std::string TrainManager::queryTransfer(const string32 &from,
           querySingle(transferStation.name, to,
                       arrivalAtTransferDateTime_train1_leg, sortBy, true);
 
+      DateTime nextDayDate = arrivalAtTransferDateTime_train1_leg;
+      nextDayDate.addDuration(1440);
+      vector<TicketCandidate> secondLegTommorowCandidates =
+          querySingle(transferStation.name, to, nextDayDate, sortBy, true);
+
       for (const auto &ticket2 : secondLegCandidates) {
         if (ticket2.trainID == train1_obj.trainID) {
           continue;
@@ -791,6 +796,65 @@ std::string TrainManager::queryTransfer(const string32 &from,
 
         if (!(ticket2.departureDateTime >
               arrivalAtTransferDateTime_train1_leg)) {
+          LOG("Skipping second leg: " + ticket2.trainID.toString() +
+              " due to invalid departure time after first leg");
+          continue;
+        }
+
+        if (sortBy == "cost") {
+          int currentTotalPrice = ticket1.price + ticket2.price;
+          if (!transferFound || currentTotalPrice < bestTotalPrice) {
+            bestTotalPrice = currentTotalPrice;
+            bestPrice_train1ID_tie = ticket1.trainID;
+            bestPrice_train2ID_tie = ticket2.trainID;
+            bestLeg1Candidate = ticket1;
+            bestLeg2Candidate = ticket2;
+            transferFound = true;
+          } else if (currentTotalPrice == bestTotalPrice) {
+            if (ticket1.trainID < bestPrice_train1ID_tie) {
+              bestPrice_train1ID_tie = ticket1.trainID;
+              bestPrice_train2ID_tie = ticket2.trainID;
+              bestLeg1Candidate = ticket1;
+              bestLeg2Candidate = ticket2;
+            } else if (ticket1.trainID == bestPrice_train1ID_tie &&
+                       ticket2.trainID < bestPrice_train2ID_tie) {
+              bestPrice_train2ID_tie = ticket2.trainID;
+              bestLeg2Candidate = ticket2;
+            }
+          }
+        } else if (sortBy == "time") {
+          int currentTotalDuration = ticket1.duration + ticket2.duration;
+          if (!transferFound || currentTotalDuration < bestTotalDuration) {
+            bestTotalDuration = currentTotalDuration;
+            bestTime_train1ID_tie = ticket1.trainID;
+            bestTime_train2ID_tie = ticket2.trainID;
+            bestLeg1Candidate = ticket1;
+            bestLeg2Candidate = ticket2;
+            transferFound = true;
+          } else if (currentTotalDuration == bestTotalDuration) {
+            if (ticket1.trainID < bestTime_train1ID_tie) {
+              bestTime_train1ID_tie = ticket1.trainID;
+              bestTime_train2ID_tie = ticket2.trainID;
+              bestLeg1Candidate = ticket1;
+              bestLeg2Candidate = ticket2;
+            } else if (ticket1.trainID == bestTime_train1ID_tie &&
+                       ticket2.trainID < bestTime_train2ID_tie) {
+              bestTime_train2ID_tie = ticket2.trainID;
+              bestLeg2Candidate = ticket2;
+            }
+          }
+        }
+      }
+
+      for (const auto &ticket2 : secondLegTommorowCandidates) {
+        if (ticket2.trainID == train1_obj.trainID) {
+          continue;
+        }
+
+        if (!(ticket2.departureDateTime >
+              arrivalAtTransferDateTime_train1_leg)) {
+          LOG("Skipping second leg: " + ticket2.trainID.toString() +
+              " due to invalid departure time after first leg");
           continue;
         }
 

@@ -10,8 +10,7 @@
 using sjtu::map;
 
 int main() {
-  // use test/TicketSystem/2.in as input
-  // freopen("../test/TicketSystem/2.in", "r", stdin);
+  //freopen("../test/TicketSystem/21.in", "r", stdin);
   //freopen("cerr.log", "w", stderr);
 
   UserManager userManager("users");

@@ -6,8 +6,8 @@
 #include "stl/vector.hpp"
 #include <functional>
 
-template <typename Key, typename Value, size_t NODE_SIZE = 40,
-          size_t BLOCK_SIZE = 40>
+template <typename Key, typename Value, size_t NODE_SIZE = 60,
+          size_t BLOCK_SIZE = 60>
 class BPTStorage {
 public:
   using NodeType = BPTNode<Key, NODE_SIZE>;
@@ -44,8 +44,8 @@ public:
   bool isEmpty = true;
 
 private:
-  CachedFileOperation<NodeType, 2, 8, 32768> node_file;
-  CachedFileOperation<BlockType, 2, 8, 32768> data_file;
+  CachedFileOperation<NodeType, 2, 30, 50> node_file;
+  CachedFileOperation<BlockType, 2, 30, 50> data_file;
 
   std::string node_file_name;
   std::string data_file_name;
