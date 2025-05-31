@@ -526,7 +526,8 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
                                                   const string32 &to,
                                                   const DateTime &date,
                                                   const std::string &sortBy) {
-  LOG("Querying single route from " + from.toString() + " to " + to.toString());
+  LOG("Querying single route from " + from.toString() + " to " + to.toString() +
+      " using sortBy: " + sortBy);
 
   DateTime queryDate = date;
 
@@ -609,20 +610,31 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
     trainDetails.push_back(TicketCandidate(
         train.trainID, totalPrice, duration, stations[from_idx].name,
         stations[to_idx].name, departureDateTime, endDateTime, seatsAvailable));
+
+    LOG("Found ticket candidate: " + train.trainID.toString() + " from " +
+        stations[from_idx].name.toString() + " to " +
+        stations[to_idx].name.toString() + " on " +
+        departureDateTime.toString() + " with price " +
+        std::to_string(totalPrice) + " and duration " +
+        std::to_string(duration) + " minutes");
   }
 
-  if (sortBy == "price") {
-    std::sort(trainDetails.begin(), trainDetails.end(),
-              [](const TicketCandidate &a, const TicketCandidate &b) {
-                return a.price < b.price ||
-                       (a.price == b.price && a.trainID < b.trainID);
-              });
-  } else if (sortBy == "time") {
-    std::sort(trainDetails.begin(), trainDetails.end(),
-              [](const TicketCandidate &a, const TicketCandidate &b) {
-                return a.duration < b.duration ||
-                       (a.duration == b.duration && a.trainID < b.trainID);
-              });
+  if (trainDetails.size() > 1) {
+    if (sortBy == "cost") {
+      std::sort(trainDetails.begin(), trainDetails.end(),
+                [](const TicketCandidate &a, const TicketCandidate &b) {
+                  if (a.price != b.price)
+                    return a.price < b.price;
+                  return a.trainID < b.trainID;
+                });
+    } else if (sortBy == "time") {
+      std::sort(trainDetails.begin(), trainDetails.end(),
+                [](const TicketCandidate &a, const TicketCandidate &b) {
+                  if (a.duration != b.duration)
+                    return a.duration < b.duration;
+                  return a.trainID < b.trainID;
+                });
+    }
   }
 
   LOG("Found " + std::to_string(trainDetails.size()) + " ticket candidates");
@@ -769,7 +781,7 @@ std::string TrainManager::queryTransfer(const string32 &from,
           continue;
         }
 
-        if (sortBy == "price") {
+        if (sortBy == "cost") {
           int currentTotalPrice = ticket1.price + ticket2.price;
           if (!transferFound || currentTotalPrice < bestTotalPrice) {
             bestTotalPrice = currentTotalPrice;
@@ -1016,8 +1028,8 @@ bool TrainManager::updateLeftSeats(const string32 &trainID, DateTime date,
 
   for (int &ticket : tickets) {
     ticket += num; // Update the number of available seats
-    LOG("Current available seats: " + std::to_string(ticket) + "; Previous: " +
-        std::to_string(ticket - num));
+    LOG("Current available seats: " + std::to_string(ticket) +
+        "; Previous: " + std::to_string(ticket - num));
     if (ticket < 0) {
       ERROR("Cannot have negative seats");
       return false; // Cannot have negative seats
