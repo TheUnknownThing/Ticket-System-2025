@@ -1,4 +1,4 @@
-#define DEBUG_FLAG
+//#define DEBUG_FLAG
 #include "services/orderManager.hpp"
 #include "services/trainManager.hpp"
 #include "services/userManager.hpp"
@@ -12,7 +12,7 @@ using sjtu::map;
 int main() {
   // use test/TicketSystem/2.in as input
   // freopen("../test/TicketSystem/2.in", "r", stdin);
-  freopen("cerr.log", "w", stderr);
+  // freopen("cerr.log", "w", stderr);
 
   UserManager userManager("users");
   TrainManager trainManager("trains");
