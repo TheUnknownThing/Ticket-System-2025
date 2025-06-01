@@ -149,7 +149,26 @@ int calcDateDuration(int date1_mmdd, int date2_mmdd) {
     }
     ans += day2; // Days in month2
   }
-  return ans;
+  return ans < 0 ? -ans : ans;
+}
+
+int calcMinutesDuration(int date1_mmdd, int time1_minutes,
+                             int date2_mmdd, int time2_minutes) {
+  if (date1_mmdd < 0 || date2_mmdd < 0)
+    return -1;
+  if (date1_mmdd / 100 < 1 || date1_mmdd / 100 > 12 ||
+      date1_mmdd % 100 < 1 || date1_mmdd % 100 > 31)
+    return -1;
+  if (date2_mmdd / 100 < 1 || date2_mmdd / 100 > 12 ||
+      date2_mmdd % 100 < 1 || date2_mmdd % 100 > 31)
+    return -1;
+
+  int days_duration = calcDateDuration(date1_mmdd, date2_mmdd);
+  if (days_duration < 0)
+    return -1;
+
+  int result = days_duration * 1440 + (time2_minutes - time1_minutes);
+  return result < 0 ? -result : result;
 }
 
 #endif // DATE_FORMATTER_HPP

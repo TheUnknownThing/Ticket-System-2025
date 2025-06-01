@@ -125,15 +125,12 @@ public:
   }
 
   int calcDuration(const DateTime &other) const {
-    if (!hasDate() || !other.hasDate())
-      return -1; // Invalid duration if either date is not set
-
-    int this_date = date_mmdd;
-    int other_date = other.date_mmdd;
-    int this_time = time_minutes;
-    int other_time = other.time_minutes;
-
-    return std::abs((this_date - other_date) * 1440 + (this_time - other_time));
+    if (!hasDate() || !other.hasDate() || !hasTime() || !other.hasTime()) {
+      return -1; // Invalid operation
+    }
+    
+    return calcMinutesDuration(date_mmdd, time_minutes,
+                                  other.date_mmdd, other.time_minutes);
   }
 
   bool isValid() const { return hasDate() || hasTime(); }
@@ -182,7 +179,16 @@ public:
   }
 
   friend std::ostream &operator<<(std::ostream &os, const DateTime &dt) {
-    return os << dt.toString();
+    if (dt.hasDate() && dt.hasTime()) {
+      os << dt.getDateString() << " " << dt.getTimeString();
+    } else if (dt.hasDate()) {
+      os << dt.getDateString();
+    } else if (dt.hasTime()) {
+      os << dt.getTimeString();
+    } else {
+      os << "xx-xx xx:xx";
+    }
+    return os;
   }
 
   DateTime operator+(const DateTime &other) const {

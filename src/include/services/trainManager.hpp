@@ -462,8 +462,9 @@ int TrainManager::releaseTrain(const string32 &trainID) {
       ticketLookupDB.insert(std::make_pair(hashedStation[i], hashedStation[j]),
                             hashedTrainID); // from, to -> trainID
     }
-    transferLookupDB.insert(hashedStation[i],
-                            hashedTrainID); // fromStation -> trainID
+    if (i > 0 && i < trainToRelease.stationNum - 1) {
+      transferLookupDB.insert(hashedStation[i], hashedTrainID);
+    }
   }
 
   trainToRelease.ticketBucketID = ticket_bID;
@@ -513,8 +514,8 @@ std::string TrainManager::queryTrain(const string32 &trainID,
 
   vector<int> dailyLeftSeats;
   if (train.isReleased) {
-    dailyLeftSeats =
-        queryLeftSeats(stringHasher(trainID.c_str()), queryDate, 0, train.stationNum - 1);
+    dailyLeftSeats = queryLeftSeats(stringHasher(trainID.c_str()), queryDate, 0,
+                                    train.stationNum - 1);
   }
 
   for (int i = 0; i < train.stationNum; ++i) {
@@ -611,6 +612,7 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
     queryDate.minusDuration((stations[from_idx].leavingTimeOffset +
                              train.startTime.getTimeMinutes()) /
                             1440 * 1440); // Adjust to train's start time
+
     if (isTransfer) {
       if (queryDate.getDateMMDD() < train.saleStartDate.getDateMMDD()) {
         queryDate = train.saleStartDate; // Use sale start date
@@ -621,6 +623,16 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
       if (queryDate.getDateMMDD() < train.saleStartDate.getDateMMDD() ||
           queryDate.getDateMMDD() > train.saleEndDate.getDateMMDD()) {
         continue; // Not on sale on this date
+      }
+    }
+
+    if (isTransfer) {
+      DateTime transferDate =
+          DateTime(queryDate.getDateMMDD(), train.startTime.getTimeMinutes());
+      transferDate.addDuration(stations[from_idx].leavingTimeOffset);
+      while (transferDate < date) {
+        transferDate.addDuration(1440);
+        queryDate.addDuration(1440);
       }
     }
 
@@ -718,11 +730,11 @@ std::string TrainManager::queryTransfer(const string32 &from,
   bool transferFound = false;
 
   // Variables for the best option
-  int bestTotalPrice = std::numeric_limits<int>::max();
+  size_t bestTotalPrice = std::numeric_limits<size_t>::max();
   string32 bestPrice_train1ID_tie = "";
   string32 bestPrice_train2ID_tie = "";
 
-  int bestTotalDuration = std::numeric_limits<int>::max();
+  size_t bestTotalDuration = std::numeric_limits<size_t>::max();
   string32 bestTime_train1ID_tie = "";
   string32 bestTime_train2ID_tie = "";
 
@@ -738,7 +750,7 @@ std::string TrainManager::queryTransfer(const string32 &from,
         train1_obj.stationBucketID, train1_obj.stationNum);
 
     int from_idx_train1 = -1;
-    for (int i = 0; i < train1_obj.stationNum; ++i) {
+    for (int i = 1; i < train1_obj.stationNum - 1; ++i) {
       if (stations_train1[i].name == from) {
         from_idx_train1 = i;
         break;
@@ -805,11 +817,6 @@ std::string TrainManager::queryTransfer(const string32 &from,
           querySingle(transferStation.name, to,
                       arrivalAtTransferDateTime_train1_leg, sortBy, true);
 
-      DateTime nextDayDate = arrivalAtTransferDateTime_train1_leg;
-      nextDayDate.addDuration(1440);
-      vector<TicketCandidate> secondLegTommorowCandidates =
-          querySingle(transferStation.name, to, nextDayDate, sortBy, true);
-
       for (const auto &ticket2 : secondLegCandidates) {
         if (ticket2.trainID == train1_obj.trainID) {
           continue;
@@ -823,71 +830,7 @@ std::string TrainManager::queryTransfer(const string32 &from,
         }
 
         int currentTotalPrice = ticket1.price + ticket2.price;
-        int currentTotalDuration = ticket1.duration + ticket2.duration +
-                                   ticket2.departureDateTime.calcDuration(
-                                       arrivalAtTransferDateTime_train1_leg);
-
-        if (sortBy == "cost") {
-          // Cost as primary, time as secondary, train1 ID as tertiary, train2
-          // ID as quaternary
-          if (!transferFound || currentTotalPrice < bestTotalPrice ||
-              (currentTotalPrice == bestTotalPrice &&
-               currentTotalDuration < bestTotalDuration) ||
-              (currentTotalPrice == bestTotalPrice &&
-               currentTotalDuration == bestTotalDuration &&
-               ticket1.trainID < bestPrice_train1ID_tie) ||
-              (currentTotalPrice == bestTotalPrice &&
-               currentTotalDuration == bestTotalDuration &&
-               ticket1.trainID == bestPrice_train1ID_tie &&
-               ticket2.trainID < bestPrice_train2ID_tie)) {
-            bestTotalPrice = currentTotalPrice;
-            bestTotalDuration = currentTotalDuration;
-            bestPrice_train1ID_tie = ticket1.trainID;
-            bestPrice_train2ID_tie = ticket2.trainID;
-            bestLeg1Candidate = ticket1;
-            bestLeg2Candidate = ticket2;
-            transferFound = true;
-          }
-        } else if (sortBy == "time") {
-          // Time as primary, cost as secondary, train1 ID as tertiary, train2
-          // ID as quaternary
-          if (!transferFound || currentTotalDuration < bestTotalDuration ||
-              (currentTotalDuration == bestTotalDuration &&
-               currentTotalPrice < bestTotalPrice) ||
-              (currentTotalDuration == bestTotalDuration &&
-               currentTotalPrice == bestTotalPrice &&
-               ticket1.trainID < bestTime_train1ID_tie) ||
-              (currentTotalDuration == bestTotalDuration &&
-               currentTotalPrice == bestTotalPrice &&
-               ticket1.trainID == bestTime_train1ID_tie &&
-               ticket2.trainID < bestTime_train2ID_tie)) {
-            bestTotalDuration = currentTotalDuration;
-            bestTotalPrice = currentTotalPrice;
-            bestTime_train1ID_tie = ticket1.trainID;
-            bestTime_train2ID_tie = ticket2.trainID;
-            bestLeg1Candidate = ticket1;
-            bestLeg2Candidate = ticket2;
-            transferFound = true;
-          }
-        }
-      }
-
-      for (const auto &ticket2 : secondLegTommorowCandidates) {
-        if (ticket2.trainID == train1_obj.trainID) {
-          continue;
-        }
-
-        if (!(ticket2.departureDateTime >=
-              arrivalAtTransferDateTime_train1_leg)) {
-          LOG("Skipping second leg: " + ticket2.trainID.toString() +
-              " due to invalid departure time after first leg");
-          continue;
-        }
-
-        int currentTotalPrice = ticket1.price + ticket2.price;
-        int currentTotalDuration = ticket1.duration + ticket2.duration +
-                                   ticket2.departureDateTime.calcDuration(
-                                       arrivalAtTransferDateTime_train1_leg);
+        int currentTotalDuration = ticket1.departureDateTime.calcDuration(ticket2.endDateTime);
 
         if (sortBy == "cost") {
           // Cost as primary, time as secondary, train1 ID as tertiary, train2
@@ -1061,25 +1004,28 @@ bool TrainManager::refundTicket(const string32 &trainID,
   return result;
 }
 
-vector<int> TrainManager::queryLeftSeats(const size_t hashedTrainID, DateTime date,
+vector<int> TrainManager::queryLeftSeats(const size_t hashedTrainID,
+                                         DateTime date,
                                          const int from_station_idx,
                                          const int to_station_idx) {
   auto foundTrains = trainDB.find(hashedTrainID);
   if (foundTrains.empty()) {
-    ERROR("Train not found for seat query: " + trainID.toString());
+    ERROR("Train not found for seat query: " + std::to_string(hashedTrainID));
     return vector<int>(); // No such train
   }
   Train train = foundTrains[0];
   if (!train.isReleased) {
     vector<int> seats(to_station_idx - from_station_idx, train.seatNum);
-    LOG("Querying seats for unreleased train: " + trainID.toString());
+    LOG("Querying seats for unreleased train: " +
+        std::to_string(hashedTrainID));
     return seats;
   }
 
   int dayIndex =
       calcDateDuration(train.saleStartDate.getDateMMDD(), date.getDateMMDD());
   if (dayIndex < 0) {
-    ERROR("Date is before sale starts for train: " + trainID.toString());
+    ERROR("Date is before sale starts for train: " +
+          std::to_string(hashedTrainID));
     return vector<int>(); // Date is before sale starts
   }
 
@@ -1092,8 +1038,8 @@ vector<int> TrainManager::queryLeftSeats(const size_t hashedTrainID, DateTime da
     return vector<int>();
   }
 
-  LOG("Querying left seats for train " + trainID.toString() + " from station " +
-      std::to_string(from_station_idx) + " to " +
+  LOG("Querying left seats for train " + std::to_string(hashedTrainID) +
+      " from station " + std::to_string(from_station_idx) + " to " +
       std::to_string(to_station_idx));
 
   return ticketBucketManager.queryTickets(
