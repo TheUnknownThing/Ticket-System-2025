@@ -1,4 +1,4 @@
-#define DEBUG_FLAG
+//#define DEBUG_FLAG
 #include "services/orderManager.hpp"
 #include "services/trainManager.hpp"
 #include "services/userManager.hpp"

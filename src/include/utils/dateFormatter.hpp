@@ -1,12 +1,12 @@
 #ifndef DATE_FORMATTER_HPP
 #define DATE_FORMATTER_HPP
 
-#include <string>
 #include "utils/string32.hpp"
+#include <string>
 
 using sjtu::string32;
 
-const int DAYS_IN_MONTH[] = {0, 0, 0, 0, 0, 0, 30, 31, 31};
+const int DAYS_IN_MONTH[] = {0, 0, 0, 0, 0, 0, 30, 31, 31, 30};
 
 // Helper to parse "hh:mm" into minutes from midnight
 int parseTimeToMinutes(const string32 &time_s32) {
@@ -81,19 +81,16 @@ void addDurationToDateTime(int &date_mmdd, int &time_minutes_in_day,
     int day = date_mmdd % 100;
 
     day++;
-    if (month < 6 || month > 8 || DAYS_IN_MONTH[month] == 0) {
+    if (month < 6 || month > 9 || DAYS_IN_MONTH[month] == 0) {
       date_mmdd = -1; // Mark as invalid
       return;
     }
     if (day > DAYS_IN_MONTH[month]) {
       day = 1;
       month++;
-      if (month > 8) {
-        if (month == 9 && DAYS_IN_MONTH[8] == 31) {
-        } else {
-          date_mmdd = -1;
-          return;
-        }
+      if (month > 9) {
+        date_mmdd = -1;
+        return;
       }
     }
     date_mmdd = month * 100 + day;
@@ -101,7 +98,7 @@ void addDurationToDateTime(int &date_mmdd, int &time_minutes_in_day,
 }
 
 void minusDurationFromDateTime(int &date_mmdd, int &time_minutes_in_day,
-                                int duration_minutes) {
+                               int duration_minutes) {
   if (duration_minutes < 0)
     return;
 
@@ -114,7 +111,7 @@ void minusDurationFromDateTime(int &date_mmdd, int &time_minutes_in_day,
     day--;
     if (day < 1) {
       month--;
-      if (month < 6 || month > 8 || DAYS_IN_MONTH[month] == 0) {
+      if (month < 6 || month > 9 || DAYS_IN_MONTH[month] == 0) {
         date_mmdd = -1; // Mark as invalid
         return;
       }
@@ -127,11 +124,11 @@ void minusDurationFromDateTime(int &date_mmdd, int &time_minutes_in_day,
 int calcDateDuration(int date1_mmdd, int date2_mmdd) {
   if (date1_mmdd < 0 || date2_mmdd < 0)
     return -1;
-  if (date1_mmdd / 100 < 1 || date1_mmdd / 100 > 12 ||
-      date1_mmdd % 100 < 1 || date1_mmdd % 100 > 31)
+  if (date1_mmdd / 100 < 1 || date1_mmdd / 100 > 12 || date1_mmdd % 100 < 1 ||
+      date1_mmdd % 100 > 31)
     return -1;
-  if (date2_mmdd / 100 < 1 || date2_mmdd / 100 > 12 ||
-      date2_mmdd % 100 < 1 || date2_mmdd % 100 > 31)
+  if (date2_mmdd / 100 < 1 || date2_mmdd / 100 > 12 || date2_mmdd % 100 < 1 ||
+      date2_mmdd % 100 > 31)
     return -1;
 
   int month1 = date1_mmdd / 100;
@@ -152,15 +149,15 @@ int calcDateDuration(int date1_mmdd, int date2_mmdd) {
   return ans < 0 ? -ans : ans;
 }
 
-int calcMinutesDuration(int date1_mmdd, int time1_minutes,
-                             int date2_mmdd, int time2_minutes) {
+int calcMinutesDuration(int date1_mmdd, int time1_minutes, int date2_mmdd,
+                        int time2_minutes) {
   if (date1_mmdd < 0 || date2_mmdd < 0)
     return -1;
-  if (date1_mmdd / 100 < 1 || date1_mmdd / 100 > 12 ||
-      date1_mmdd % 100 < 1 || date1_mmdd % 100 > 31)
+  if (date1_mmdd / 100 < 1 || date1_mmdd / 100 > 12 || date1_mmdd % 100 < 1 ||
+      date1_mmdd % 100 > 31)
     return -1;
-  if (date2_mmdd / 100 < 1 || date2_mmdd / 100 > 12 ||
-      date2_mmdd % 100 < 1 || date2_mmdd % 100 > 31)
+  if (date2_mmdd / 100 < 1 || date2_mmdd / 100 > 12 || date2_mmdd % 100 < 1 ||
+      date2_mmdd % 100 > 31)
     return -1;
 
   int days_duration = calcDateDuration(date1_mmdd, date2_mmdd);

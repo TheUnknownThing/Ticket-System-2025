@@ -137,7 +137,7 @@ class TrainManager {
 
 private:
   BPTStorage<size_t, Train> trainDB; // hashedID -> Train
-  BPTStorage<std::pair<size_t, size_t>, size_t, 400, 200>
+  BPTStorage<std::pair<size_t, size_t>, size_t, 500, 300>
       ticketLookupDB; // stationName, stationName -> hashedID
   BPTStorage<size_t, size_t> transferLookupDB; // fromStation -> hashedID
   StationBucketManager stationBucketManager;
@@ -462,9 +462,8 @@ int TrainManager::releaseTrain(const string32 &trainID) {
       ticketLookupDB.insert(std::make_pair(hashedStation[i], hashedStation[j]),
                             hashedTrainID); // from, to -> trainID
     }
-    if (i > 0 && i < trainToRelease.stationNum - 1) {
       transferLookupDB.insert(hashedStation[i], hashedTrainID);
-    }
+  
   }
 
   trainToRelease.ticketBucketID = ticket_bID;
@@ -634,6 +633,10 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
         transferDate.addDuration(1440);
         queryDate.addDuration(1440);
       }
+      if (queryDate.getDateMMDD() >
+          train.saleEndDate.getDateMMDD()) {
+        continue; // No valid transfer date
+      }
     }
 
     vector<int> leftSeats =
@@ -750,7 +753,7 @@ std::string TrainManager::queryTransfer(const string32 &from,
         train1_obj.stationBucketID, train1_obj.stationNum);
 
     int from_idx_train1 = -1;
-    for (int i = 1; i < train1_obj.stationNum - 1; ++i) {
+    for (int i = 0; i < train1_obj.stationNum; ++i) {
       if (stations_train1[i].name == from) {
         from_idx_train1 = i;
         break;
@@ -831,6 +834,13 @@ std::string TrainManager::queryTransfer(const string32 &from,
 
         int currentTotalPrice = ticket1.price + ticket2.price;
         int currentTotalDuration = ticket1.departureDateTime.calcDuration(ticket2.endDateTime);
+
+        LOG("Evaluating transfer: " + ticket1.trainID.toString() +
+            " -> " + ticket2.trainID.toString() + " with total price " +
+            std::to_string(currentTotalPrice) + " and total duration " +
+            std::to_string(currentTotalDuration) + "; Max Price: " +
+            std::to_string(bestTotalPrice) + ", Max Duration: " +
+            std::to_string(bestTotalDuration));
 
         if (sortBy == "cost") {
           // Cost as primary, time as secondary, train1 ID as tertiary, train2
