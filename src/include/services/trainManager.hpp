@@ -4,7 +4,7 @@
 #include "stl/map.hpp"
 #include "stl/vector.hpp"
 #include "storage/bptStorage.hpp"
-#include "storage/cachedFileOperation.hpp"
+#include "storage/cache/fileOperation.hpp"
 #include "storage/varLengthFileOperation.hpp"
 #include "utils/dateFormatter.hpp"
 #include "utils/dateTime.hpp"
@@ -32,7 +32,7 @@ struct Station {
 
 class StationBucketManager {
 private:
-  CachedFileOperation<Station> stationBucket;
+  FileOperation<Station> stationBucket;
 
 public:
   StationBucketManager() = delete;
@@ -66,6 +66,7 @@ public:
 };
 
 struct Train {
+  size_t hashedID;
   string32 trainID;
   int stationNum;
   int stationBucketID;
@@ -135,12 +136,13 @@ class TrainManager {
   friend class OrderManager;
 
 private:
-  BPTStorage<string32, Train> trainDB;
-  BPTStorage<std::pair<size_t, size_t>, string32, 500, 100>
-      ticketLookupDB; // stationName, stationName -> trainID
-  BPTStorage<size_t, string32> transferLookupDB; // fromStation -> trainID
+  BPTStorage<size_t, Train> trainDB; // hashedID -> Train
+  BPTStorage<std::pair<size_t, size_t>, size_t, 400, 200>
+      ticketLookupDB; // stationName, stationName -> hashedID
+  BPTStorage<size_t, size_t> transferLookupDB; // fromStation -> hashedID
   StationBucketManager stationBucketManager;
   TicketBucketManager ticketBucketManager;
+  CustomStringHasher stringHasher;
 
 public:
   TrainManager(const std::string &trainFile);
@@ -180,7 +182,7 @@ private:
   bool refundTicket(const string32 &trainID, const DateTime &departureDate,
                     int num, const int from_idx, const int to_idx);
 
-  vector<int> queryLeftSeats(const string32 &trainID, DateTime date,
+  vector<int> queryLeftSeats(const size_t hashedTrainID, DateTime date,
                              const int from_station_idx,
                              const int to_station_idx);
 
@@ -265,7 +267,7 @@ void TicketBucketManager::updateTickets(int bucketID, int offset,
 }
 
 TrainManager::TrainManager(const std::string &trainFile)
-    : trainDB(trainFile + "_train", string32::string32_MAX()),
+    : trainDB(trainFile + "_train", ULONG_MAX),
       ticketLookupDB(trainFile + "_ticket_lookup",
                      std::make_pair(ULONG_MAX, ULONG_MAX)),
       transferLookupDB(trainFile + "_transfer_lookup", ULONG_MAX),
@@ -283,7 +285,7 @@ int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
                            const std::string &saleDates_str, char trainType) {
   LOG("Adding train: " + trainID.toString());
 
-  if (!trainDB.find(trainID).empty()) {
+  if (!trainDB.find(stringHasher(trainID.c_str())).empty()) {
     ERROR("Train ID already exists: " + trainID.toString());
     return -1; // Train ID already exists
   }
@@ -387,7 +389,7 @@ int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
   newTrain.type = trainType;
   newTrain.isReleased = false;
 
-  trainDB.insert(trainID, newTrain);
+  trainDB.insert(stringHasher(trainID.c_str()), newTrain);
   LOG("Successfully added train: " + trainID.toString() + " with " +
       std::to_string(stationNum_val) + " stations and " +
       std::to_string(seatNum_val) + " seats, starting at " +
@@ -399,7 +401,7 @@ int TrainManager::addTrain(const string32 &trainID, int stationNum_val,
 int TrainManager::deleteTrain(const string32 &trainID) {
   LOG("Deleting train: " + trainID.toString());
 
-  auto foundTrains = trainDB.find(trainID);
+  auto foundTrains = trainDB.find(stringHasher(trainID.c_str()));
   if (foundTrains.empty()) {
     ERROR("Train not found for deletion: " + trainID.toString());
     return -1;
@@ -410,7 +412,7 @@ int TrainManager::deleteTrain(const string32 &trainID) {
     return -1; // Cannot delete a released train
   }
 
-  trainDB.remove(trainID, trainToDelete);
+  trainDB.remove(stringHasher(trainID.c_str()), trainToDelete);
   stationBucketManager.deleteStations(trainToDelete.stationBucketID,
                                       trainToDelete.stationNum);
   LOG("Successfully deleted train: " + trainID.toString());
@@ -420,7 +422,7 @@ int TrainManager::deleteTrain(const string32 &trainID) {
 int TrainManager::releaseTrain(const string32 &trainID) {
   LOG("Releasing train: " + trainID.toString());
 
-  auto foundTrains = trainDB.find(trainID);
+  auto foundTrains = trainDB.find(stringHasher(trainID.c_str()));
   if (foundTrains.empty()) {
     ERROR("Train not found for release: " + trainID.toString());
     return -1; // Train not found
@@ -431,7 +433,7 @@ int TrainManager::releaseTrain(const string32 &trainID) {
     return -1; // Already released
   }
 
-  trainDB.remove(trainID, trainToRelease);
+  trainDB.remove(stringHasher(trainID.c_str()), trainToRelease);
   trainToRelease.isReleased = true;
   int numSaleDays = calcDateDuration(trainToRelease.saleStartDate.getDateMMDD(),
                                      trainToRelease.saleEndDate.getDateMMDD()) +
@@ -448,23 +450,24 @@ int TrainManager::releaseTrain(const string32 &trainID) {
   auto stations = stationBucketManager.queryStations(
       trainToRelease.stationBucketID, trainToRelease.stationNum);
 
-  CustomStringHasher custom_hasher;
   size_t hashedStation[trainToRelease.stationNum];
   for (int i = 0; i < trainToRelease.stationNum; ++i) {
-    hashedStation[i] = custom_hasher(stations[i].name.c_str());
+    hashedStation[i] = stringHasher(stations[i].name.c_str());
   }
+
+  size_t hashedTrainID = stringHasher(trainID.c_str());
 
   for (int i = 0; i < trainToRelease.stationNum; ++i) {
     for (int j = i + 1; j < trainToRelease.stationNum; ++j) {
       ticketLookupDB.insert(std::make_pair(hashedStation[i], hashedStation[j]),
-                            trainID); // from, to -> trainID
+                            hashedTrainID); // from, to -> trainID
     }
     transferLookupDB.insert(hashedStation[i],
-                            trainID); // fromStation -> trainID
+                            hashedTrainID); // fromStation -> trainID
   }
 
   trainToRelease.ticketBucketID = ticket_bID;
-  trainDB.insert(trainID, trainToRelease);
+  trainDB.insert(hashedTrainID, trainToRelease);
 
   LOG("Successfully released train: " + trainID.toString() + " with " +
       std::to_string(numSaleDays) + " sale days");
@@ -482,7 +485,7 @@ std::string TrainManager::queryTrain(const string32 &trainID,
     return "-1"; // Invalid date format
   }
 
-  auto foundTrains = trainDB.find(trainID);
+  auto foundTrains = trainDB.find(stringHasher(trainID.c_str()));
   if (foundTrains.empty()) {
     ERROR("Train not found for query: " + trainID.toString());
     return "-1"; // Train not found
@@ -511,7 +514,7 @@ std::string TrainManager::queryTrain(const string32 &trainID,
   vector<int> dailyLeftSeats;
   if (train.isReleased) {
     dailyLeftSeats =
-        queryLeftSeats(trainID, queryDate, 0, train.stationNum - 1);
+        queryLeftSeats(stringHasher(trainID.c_str()), queryDate, 0, train.stationNum - 1);
   }
 
   for (int i = 0; i < train.stationNum; ++i) {
@@ -567,9 +570,8 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
                                                   bool isTransfer) {
   LOG("Querying single route from " + from.toString() + " to " + to.toString() +
       " using sortBy: " + sortBy);
-  CustomStringHasher custom_hasher;
   auto matchingTrainIDs = ticketLookupDB.find(
-      std::make_pair(custom_hasher(from.c_str()), custom_hasher(to.c_str())));
+      std::make_pair(stringHasher(from.c_str()), stringHasher(to.c_str())));
   LOG("Found " + std::to_string(matchingTrainIDs.size()) +
       " matching trains for route from " + from.toString() + " to " +
       to.toString());
@@ -724,8 +726,7 @@ std::string TrainManager::queryTransfer(const string32 &from,
   string32 bestTime_train1ID_tie = "";
   string32 bestTime_train2ID_tie = "";
 
-  CustomStringHasher custom_hasher;
-  auto firstLegTrainIDs = transferLookupDB.find(custom_hasher(from.c_str()));
+  auto firstLegTrainIDs = transferLookupDB.find(stringHasher(from.c_str()));
 
   for (const auto &train1ID : firstLegTrainIDs) {
     auto foundTrain1Vec = trainDB.find(train1ID);
@@ -966,7 +967,7 @@ TrainManager::buyTicket(const string32 &trainID, const DateTime &departureDate,
       trainID.toString() + " from " + from_station_name.toString() + " to " +
       to_station_name.toString());
 
-  auto foundTrains = trainDB.find(trainID);
+  auto foundTrains = trainDB.find(stringHasher(trainID.c_str()));
   if (foundTrains.empty() || !foundTrains[0].isReleased) {
     ERROR("Train not found or not released: " + trainID.toString());
     return {-1, -1, false, -1, -1, -1, -1};
@@ -1043,7 +1044,7 @@ bool TrainManager::refundTicket(const string32 &trainID,
   LOG("Refunding " + std::to_string(num) + " tickets for train " +
       trainID.toString());
 
-  auto foundTrains = trainDB.find(trainID);
+  auto foundTrains = trainDB.find(stringHasher(trainID.c_str()));
   if (foundTrains.empty() || !foundTrains[0].isReleased) {
     ERROR("Train not found or not released for refund: " + trainID.toString());
     return false;
@@ -1060,10 +1061,10 @@ bool TrainManager::refundTicket(const string32 &trainID,
   return result;
 }
 
-vector<int> TrainManager::queryLeftSeats(const string32 &trainID, DateTime date,
+vector<int> TrainManager::queryLeftSeats(const size_t hashedTrainID, DateTime date,
                                          const int from_station_idx,
                                          const int to_station_idx) {
-  auto foundTrains = trainDB.find(trainID);
+  auto foundTrains = trainDB.find(hashedTrainID);
   if (foundTrains.empty()) {
     ERROR("Train not found for seat query: " + trainID.toString());
     return vector<int>(); // No such train
@@ -1102,7 +1103,7 @@ vector<int> TrainManager::queryLeftSeats(const string32 &trainID, DateTime date,
 bool TrainManager::updateLeftSeats(const string32 &trainID, DateTime date,
                                    const int from_station_idx,
                                    const int to_station_idx, int num) {
-  auto foundTrains = trainDB.find(trainID);
+  auto foundTrains = trainDB.find(stringHasher(trainID.c_str()));
   if (foundTrains.empty()) {
     ERROR("Train not found for seat update: " + trainID.toString());
     return false; // No such train
