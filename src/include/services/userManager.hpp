@@ -31,6 +31,13 @@ struct User {
     return username <= other.username;
   }
 
+  bool operator>(const User &other) const {
+    return username > other.username;
+  }
+  bool operator<(const User &other) const {
+    return username < other.username;
+  }
+
   friend std::ostream &operator<<(std::ostream &os, const User &user) {
     if (user == User())
       return os << "-1";

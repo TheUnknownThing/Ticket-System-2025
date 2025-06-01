@@ -168,6 +168,8 @@ int main() {
         LOG("System shutdown");
         std::cout << "bye";
         break;
+      } else if (command == "DEBUG") {
+        LOG("DEBUG command received, printing debug information");
       } else {
         ERROR("Unknown command received: " + command);
         std::cout << "-1"; // Unknown command

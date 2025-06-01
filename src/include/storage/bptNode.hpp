@@ -40,38 +40,29 @@ public:
   std::pair<bool, bool> delete_key(Key key, Value value) {
     int left = 0;
     int right = key_count - 1;
-    int start_idx = -1;
+    int target_idx = -1;
 
     while (left <= right) {
       int mid = left + (right - left) / 2;
-      if (data[mid].first == key) {
-        start_idx = mid;
-        while (start_idx > 0 && data[start_idx - 1].first == key) {
-          start_idx--;
-        }
-        break;
-      } else if (data[mid].first < key) {
+      if (data[mid].first < key || (data[mid].first == key && data[mid].second < value)) {
         left = mid + 1;
-      } else {
+      } else if (data[mid].first > key || (data[mid].first == key && data[mid].second > value)) {
         right = mid - 1;
+      } else {
+        target_idx = mid;
+        break;
       }
     }
 
-    if (start_idx == -1) {
+    if (target_idx == -1) {
       return {false, false};
     }
 
-    for (int i = start_idx; i < key_count && data[i].first == key; i++) {
-      if (data[i].second == value) {
-        for (int j = i; j < key_count - 1; j++) {
-          data[j] = data[j + 1];
-        }
-        key_count--;
-        return {true, key_count <= BLOCK_SIZE / 3};
-      }
+    for (int j = target_idx; j < key_count - 1; j++) {
+      data[j] = data[j + 1];
     }
-
-    return {false, false};
+    key_count--;
+    return {true, key_count <= BLOCK_SIZE / 3};
   }
 
   /**
@@ -117,22 +108,14 @@ public:
     
     while (left <= right) {
       int mid = left + (right - left) / 2;
-      if (data[mid].first < key) {
+      if (data[mid].first < key || (data[mid].first == key && data[mid].second < value)) {
         left = mid + 1;
-      } else if (data[mid].first > key) {
-        right = mid - 1;
       } else {
-        pos = mid;
-        while (pos < key_count && data[pos].first == key) {
-          pos++;
-        }
-        break;
+        right = mid - 1;
       }
     }
     
-    if (left > right) {
-      pos = left;
-    }
+    pos = left;
     
     for (int j = key_count; j > pos; j--) {
       data[j] = data[j - 1];

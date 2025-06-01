@@ -80,6 +80,24 @@ struct Train {
   bool operator==(const Train &other) const { return trainID == other.trainID; }
 
   bool operator<=(const Train &other) const { return trainID <= other.trainID; }
+
+  bool operator>(const Train &other) const { return trainID > other.trainID; }
+
+  bool operator<(const Train &other) const { return trainID < other.trainID; }
+};
+
+struct CustomStringHasher {
+  size_t operator()(const char *str) const {
+    size_t hash = 5381;
+    const size_t salt = 33;
+    int c;
+
+    while ((c = *str++)) {
+      hash = ((hash << 5) + hash) + c + salt;
+    }
+
+    return hash;
+  }
 };
 
 struct TicketCandidate {
@@ -118,7 +136,9 @@ class TrainManager {
 
 private:
   BPTStorage<string32, Train> trainDB;
-  BPTStorage<string32, string32> ticketLookupDB; // stationName -> trainID
+  BPTStorage<std::pair<size_t, size_t>, string32, 500, 100>
+      ticketLookupDB; // stationName, stationName -> trainID
+  BPTStorage<size_t, string32> transferLookupDB; // fromStation -> trainID
   StationBucketManager stationBucketManager;
   TicketBucketManager ticketBucketManager;
 
@@ -246,7 +266,9 @@ void TicketBucketManager::updateTickets(int bucketID, int offset,
 
 TrainManager::TrainManager(const std::string &trainFile)
     : trainDB(trainFile + "_train", string32::string32_MAX()),
-      ticketLookupDB(trainFile + "_ticket_lookup", string32::string32_MAX()),
+      ticketLookupDB(trainFile + "_ticket_lookup",
+                     std::make_pair(ULONG_MAX, ULONG_MAX)),
+      transferLookupDB(trainFile + "_transfer_lookup", ULONG_MAX),
       stationBucketManager(trainFile + "_station_bucket"),
       ticketBucketManager(trainFile + "_ticket_bucket") {
   LOG("TrainManager initialized with file prefix: " + trainFile);
@@ -425,11 +447,20 @@ int TrainManager::releaseTrain(const string32 &trainID) {
 
   auto stations = stationBucketManager.queryStations(
       trainToRelease.stationBucketID, trainToRelease.stationNum);
+
+  CustomStringHasher custom_hasher;
+  size_t hashedStation[trainToRelease.stationNum];
   for (int i = 0; i < trainToRelease.stationNum; ++i) {
-    // Update ticket lookup for each station
-    LOG("Inserting ticket lookup for station: " + stations[i].name.toString() +
-        " with train ID: " + trainToRelease.trainID.toString());
-    ticketLookupDB.insert(stations[i].name, trainToRelease.trainID);
+    hashedStation[i] = custom_hasher(stations[i].name.c_str());
+  }
+
+  for (int i = 0; i < trainToRelease.stationNum; ++i) {
+    for (int j = i + 1; j < trainToRelease.stationNum; ++j) {
+      ticketLookupDB.insert(std::make_pair(hashedStation[i], hashedStation[j]),
+                            trainID); // from, to -> trainID
+    }
+    transferLookupDB.insert(hashedStation[i],
+                            trainID); // fromStation -> trainID
   }
 
   trainToRelease.ticketBucketID = ticket_bID;
@@ -536,24 +567,12 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
                                                   bool isTransfer) {
   LOG("Querying single route from " + from.toString() + " to " + to.toString() +
       " using sortBy: " + sortBy);
-  auto fromTrains = ticketLookupDB.find(from);
-  auto toTrains = ticketLookupDB.find(to);
-
-  map<string32, int> trainCountMap; // trainID -> count of matching trains
-  vector<string32> matchingTrainIDs;
-  for (const auto &trainID : fromTrains) {
-    LOG("Found train " + trainID.toString() + " for from station " +
-        from.toString());
-    trainCountMap[trainID] = 1;
-  }
-  for (const auto &trainID : toTrains) {
-    LOG("Found matching train " + trainID.toString() + " for to station " +
-        to.toString());
-    if (trainCountMap.find(trainID) != trainCountMap.end()) {
-      matchingTrainIDs.push_back(trainID);
-    }
-  }
-
+  CustomStringHasher custom_hasher;
+  auto matchingTrainIDs = ticketLookupDB.find(
+      std::make_pair(custom_hasher(from.c_str()), custom_hasher(to.c_str())));
+  LOG("Found " + std::to_string(matchingTrainIDs.size()) +
+      " matching trains for route from " + from.toString() + " to " +
+      to.toString());
   if (matchingTrainIDs.empty()) {
     LOG("No matching trains found for route");
     return vector<TicketCandidate>(); // No matching trains found
@@ -705,7 +724,8 @@ std::string TrainManager::queryTransfer(const string32 &from,
   string32 bestTime_train1ID_tie = "";
   string32 bestTime_train2ID_tie = "";
 
-  auto firstLegTrainIDs = ticketLookupDB.find(from);
+  CustomStringHasher custom_hasher;
+  auto firstLegTrainIDs = transferLookupDB.find(custom_hasher(from.c_str()));
 
   for (const auto &train1ID : firstLegTrainIDs) {
     auto foundTrain1Vec = trainDB.find(train1ID);
@@ -795,46 +815,58 @@ std::string TrainManager::queryTransfer(const string32 &from,
         }
 
         if (!(ticket2.departureDateTime >=
-          arrivalAtTransferDateTime_train1_leg)) {
+              arrivalAtTransferDateTime_train1_leg)) {
           LOG("Skipping second leg: " + ticket2.trainID.toString() +
-          " due to invalid departure time after first leg");
+              " due to invalid departure time after first leg");
           continue;
         }
 
         int currentTotalPrice = ticket1.price + ticket2.price;
         int currentTotalDuration = ticket1.duration + ticket2.duration +
-                   ticket2.departureDateTime.calcDuration(
-                   arrivalAtTransferDateTime_train1_leg);
+                                   ticket2.departureDateTime.calcDuration(
+                                       arrivalAtTransferDateTime_train1_leg);
 
         if (sortBy == "cost") {
-          // Cost as primary, time as secondary, train1 ID as tertiary, train2 ID as quaternary
-          if (!transferFound || 
-          currentTotalPrice < bestTotalPrice ||
-          (currentTotalPrice == bestTotalPrice && currentTotalDuration < bestTotalDuration) ||
-          (currentTotalPrice == bestTotalPrice && currentTotalDuration == bestTotalDuration && ticket1.trainID < bestPrice_train1ID_tie) ||
-          (currentTotalPrice == bestTotalPrice && currentTotalDuration == bestTotalDuration && ticket1.trainID == bestPrice_train1ID_tie && ticket2.trainID < bestPrice_train2ID_tie)) {
-        bestTotalPrice = currentTotalPrice;
-        bestTotalDuration = currentTotalDuration;
-        bestPrice_train1ID_tie = ticket1.trainID;
-        bestPrice_train2ID_tie = ticket2.trainID;
-        bestLeg1Candidate = ticket1;
-        bestLeg2Candidate = ticket2;
-        transferFound = true;
+          // Cost as primary, time as secondary, train1 ID as tertiary, train2
+          // ID as quaternary
+          if (!transferFound || currentTotalPrice < bestTotalPrice ||
+              (currentTotalPrice == bestTotalPrice &&
+               currentTotalDuration < bestTotalDuration) ||
+              (currentTotalPrice == bestTotalPrice &&
+               currentTotalDuration == bestTotalDuration &&
+               ticket1.trainID < bestPrice_train1ID_tie) ||
+              (currentTotalPrice == bestTotalPrice &&
+               currentTotalDuration == bestTotalDuration &&
+               ticket1.trainID == bestPrice_train1ID_tie &&
+               ticket2.trainID < bestPrice_train2ID_tie)) {
+            bestTotalPrice = currentTotalPrice;
+            bestTotalDuration = currentTotalDuration;
+            bestPrice_train1ID_tie = ticket1.trainID;
+            bestPrice_train2ID_tie = ticket2.trainID;
+            bestLeg1Candidate = ticket1;
+            bestLeg2Candidate = ticket2;
+            transferFound = true;
           }
         } else if (sortBy == "time") {
-          // Time as primary, cost as secondary, train1 ID as tertiary, train2 ID as quaternary
-          if (!transferFound || 
-          currentTotalDuration < bestTotalDuration ||
-          (currentTotalDuration == bestTotalDuration && currentTotalPrice < bestTotalPrice) ||
-          (currentTotalDuration == bestTotalDuration && currentTotalPrice == bestTotalPrice && ticket1.trainID < bestTime_train1ID_tie) ||
-          (currentTotalDuration == bestTotalDuration && currentTotalPrice == bestTotalPrice && ticket1.trainID == bestTime_train1ID_tie && ticket2.trainID < bestTime_train2ID_tie)) {
-        bestTotalDuration = currentTotalDuration;
-        bestTotalPrice = currentTotalPrice;
-        bestTime_train1ID_tie = ticket1.trainID;
-        bestTime_train2ID_tie = ticket2.trainID;
-        bestLeg1Candidate = ticket1;
-        bestLeg2Candidate = ticket2;
-        transferFound = true;
+          // Time as primary, cost as secondary, train1 ID as tertiary, train2
+          // ID as quaternary
+          if (!transferFound || currentTotalDuration < bestTotalDuration ||
+              (currentTotalDuration == bestTotalDuration &&
+               currentTotalPrice < bestTotalPrice) ||
+              (currentTotalDuration == bestTotalDuration &&
+               currentTotalPrice == bestTotalPrice &&
+               ticket1.trainID < bestTime_train1ID_tie) ||
+              (currentTotalDuration == bestTotalDuration &&
+               currentTotalPrice == bestTotalPrice &&
+               ticket1.trainID == bestTime_train1ID_tie &&
+               ticket2.trainID < bestTime_train2ID_tie)) {
+            bestTotalDuration = currentTotalDuration;
+            bestTotalPrice = currentTotalPrice;
+            bestTime_train1ID_tie = ticket1.trainID;
+            bestTime_train2ID_tie = ticket2.trainID;
+            bestLeg1Candidate = ticket1;
+            bestLeg2Candidate = ticket2;
+            transferFound = true;
           }
         }
       }
@@ -845,50 +877,61 @@ std::string TrainManager::queryTransfer(const string32 &from,
         }
 
         if (!(ticket2.departureDateTime >=
-          arrivalAtTransferDateTime_train1_leg)) {
+              arrivalAtTransferDateTime_train1_leg)) {
           LOG("Skipping second leg: " + ticket2.trainID.toString() +
-          " due to invalid departure time after first leg");
+              " due to invalid departure time after first leg");
           continue;
         }
 
         int currentTotalPrice = ticket1.price + ticket2.price;
         int currentTotalDuration = ticket1.duration + ticket2.duration +
-                   ticket2.departureDateTime.calcDuration(
-                   arrivalAtTransferDateTime_train1_leg);
+                                   ticket2.departureDateTime.calcDuration(
+                                       arrivalAtTransferDateTime_train1_leg);
 
         if (sortBy == "cost") {
-          // Cost as primary, time as secondary, train1 ID as tertiary, train2 ID as quaternary
-          if (!transferFound || 
-          currentTotalPrice < bestTotalPrice ||
-          (currentTotalPrice == bestTotalPrice && currentTotalDuration < bestTotalDuration) ||
-          (currentTotalPrice == bestTotalPrice && currentTotalDuration == bestTotalDuration && ticket1.trainID < bestPrice_train1ID_tie) ||
-          (currentTotalPrice == bestTotalPrice && currentTotalDuration == bestTotalDuration && ticket1.trainID == bestPrice_train1ID_tie && ticket2.trainID < bestPrice_train2ID_tie)) {
-        bestTotalPrice = currentTotalPrice;
-        bestTotalDuration = currentTotalDuration;
-        bestPrice_train1ID_tie = ticket1.trainID;
-        bestPrice_train2ID_tie = ticket2.trainID;
-        bestLeg1Candidate = ticket1;
-        bestLeg2Candidate = ticket2;
-        transferFound = true;
+          // Cost as primary, time as secondary, train1 ID as tertiary, train2
+          // ID as quaternary
+          if (!transferFound || currentTotalPrice < bestTotalPrice ||
+              (currentTotalPrice == bestTotalPrice &&
+               currentTotalDuration < bestTotalDuration) ||
+              (currentTotalPrice == bestTotalPrice &&
+               currentTotalDuration == bestTotalDuration &&
+               ticket1.trainID < bestPrice_train1ID_tie) ||
+              (currentTotalPrice == bestTotalPrice &&
+               currentTotalDuration == bestTotalDuration &&
+               ticket1.trainID == bestPrice_train1ID_tie &&
+               ticket2.trainID < bestPrice_train2ID_tie)) {
+            bestTotalPrice = currentTotalPrice;
+            bestTotalDuration = currentTotalDuration;
+            bestPrice_train1ID_tie = ticket1.trainID;
+            bestPrice_train2ID_tie = ticket2.trainID;
+            bestLeg1Candidate = ticket1;
+            bestLeg2Candidate = ticket2;
+            transferFound = true;
           }
         } else if (sortBy == "time") {
-          // Time as primary, cost as secondary, train1 ID as tertiary, train2 ID as quaternary
-          if (!transferFound || 
-          currentTotalDuration < bestTotalDuration ||
-          (currentTotalDuration == bestTotalDuration && currentTotalPrice < bestTotalPrice) ||
-          (currentTotalDuration == bestTotalDuration && currentTotalPrice == bestTotalPrice && ticket1.trainID < bestTime_train1ID_tie) ||
-          (currentTotalDuration == bestTotalDuration && currentTotalPrice == bestTotalPrice && ticket1.trainID == bestTime_train1ID_tie && ticket2.trainID < bestTime_train2ID_tie)) {
-        bestTotalDuration = currentTotalDuration;
-        bestTotalPrice = currentTotalPrice;
-        bestTime_train1ID_tie = ticket1.trainID;
-        bestTime_train2ID_tie = ticket2.trainID;
-        bestLeg1Candidate = ticket1;
-        bestLeg2Candidate = ticket2;
-        transferFound = true;
+          // Time as primary, cost as secondary, train1 ID as tertiary, train2
+          // ID as quaternary
+          if (!transferFound || currentTotalDuration < bestTotalDuration ||
+              (currentTotalDuration == bestTotalDuration &&
+               currentTotalPrice < bestTotalPrice) ||
+              (currentTotalDuration == bestTotalDuration &&
+               currentTotalPrice == bestTotalPrice &&
+               ticket1.trainID < bestTime_train1ID_tie) ||
+              (currentTotalDuration == bestTotalDuration &&
+               currentTotalPrice == bestTotalPrice &&
+               ticket1.trainID == bestTime_train1ID_tie &&
+               ticket2.trainID < bestTime_train2ID_tie)) {
+            bestTotalDuration = currentTotalDuration;
+            bestTotalPrice = currentTotalPrice;
+            bestTime_train1ID_tie = ticket1.trainID;
+            bestTime_train2ID_tie = ticket2.trainID;
+            bestLeg1Candidate = ticket1;
+            bestLeg2Candidate = ticket2;
+            transferFound = true;
           }
         }
       }
-
     }
   }
 
