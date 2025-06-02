@@ -23,7 +23,6 @@ inline crow::json::wvalue fail() {
 
 int main(int argc, char *argv[]) {
   crow::SimpleApp app;
-
   // add_user
   CROW_ROUTE(app, "/users")
       .methods("POST"_method)([](const crow::request &req) {
@@ -38,7 +37,11 @@ int main(int argc, char *argv[]) {
                              static_cast<std::string>(body["mailAddr"].s()),
                              body["privilege"].i());
         auto j = okflag ? ok() : fail();
-        return crow::response{j};
+        crow::response res{j};
+        res.add_header("Access-Control-Allow-Origin", "*");
+        res.add_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        res.add_header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        return res;
       });
 
   // login
@@ -50,7 +53,11 @@ int main(int argc, char *argv[]) {
         bool okflag =
             ctx.user.login(static_cast<std::string>(body["username"].s()),
                            static_cast<std::string>(body["password"].s()));
-        return crow::response{okflag ? ok() : fail()};
+        crow::response res{okflag ? ok() : fail()};
+        res.add_header("Access-Control-Allow-Origin", "*");
+        res.add_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        res.add_header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        return res;
       });
 
   // logout

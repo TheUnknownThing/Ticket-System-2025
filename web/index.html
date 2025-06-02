@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Railway Ticket System</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-train"></i>
+                <span>Ticket</span>
+            </div>
+            <div class="nav-menu" id="nav-menu">
+                <a href="#" class="nav-link" data-section="search">Search</a>
+                <a href="#" class="nav-link" data-section="orders">My Orders</a>
+                <a href="#" class="nav-link" data-section="profile">Profile</a>
+                <a href="#" class="nav-link" data-section="admin">Admin</a>
+                <button id="logout-btn" class="nav-btn" style="display: none;">Logout</button>
+            </div>
+            <div class="auth-section" id="auth-section">
+                <button class="nav-btn" id="login-btn">Login</button>
+                <button class="nav-btn secondary" id="register-btn">Register</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <!-- Login Modal -->
+        <div id="login-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Login</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-username">Username</label>
+                        <input type="text" id="login-username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="btn primary">Login</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Register Modal -->
+        <div id="register-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Register</h2>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="reg-cur-username">Admin Username (for approval)</label>
+                        <input type="text" id="reg-cur-username" placeholder="Leave empty for first user">
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-username">Username</label>
+                        <input type="text" id="reg-username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password">Password</label>
+                        <input type="password" id="reg-password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-name">Full Name</label>
+                        <input type="text" id="reg-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-email">Email</label>
+                        <input type="email" id="reg-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-privilege">Privilege Level</label>
+                        <select id="reg-privilege">
+                            <option value="1">User (1)</option>
+                            <option value="3">Moderator (3)</option>
+                            <option value="10">Admin (10)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn primary">Register</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Search Section -->
+        <section id="search-section" class="section active">
+            <div class="container">
+                <h1>Search Train Tickets</h1>
+                <div class="search-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="from-station">From</label>
+                            <input type="text" id="from-station" placeholder="Departure station">
+                        </div>
+                        <div class="form-group">
+                            <label for="to-station">To</label>
+                            <input type="text" id="to-station" placeholder="Arrival station">
+                        </div>
+                        <div class="form-group">
+                            <label for="travel-date">Date</label>
+                            <input type="date" id="travel-date">
+                        </div>
+                        <div class="form-group">
+                            <label for="sort-by">Sort by</label>
+                            <select id="sort-by">
+                                <option value="time">Time</option>
+                                <option value="cost">Cost</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button id="search-btn" class="btn primary">Search Tickets</button>
+                        <button id="search-transfer-btn" class="btn secondary">Search with Transfer</button>
+                    </div>
+                </div>
+                
+                <div id="search-results" class="search-results" style="display: none;">
+                    <h3>Search Results</h3>
+                    <div id="results-container"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Orders Section -->
+        <section id="orders-section" class="section">
+            <div class="container">
+                <h1>My Orders</h1>
+                <div id="orders-container" class="orders-container">
+                    <p class="login-required">Please login to view your orders.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Profile Section -->
+        <section id="profile-section" class="section">
+            <div class="container">
+                <h1>User Profile</h1>
+                <div id="profile-container" class="profile-container">
+                    <p class="login-required">Please login to view your profile.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Admin Section -->
+        <section id="admin-section" class="section">
+            <div class="container">
+                <h1>Admin Panel</h1>
+                <div id="admin-container" class="admin-container">
+                    <p class="login-required">Please login with admin privileges.</p>
+                    
+                    <div class="admin-actions" style="display: none;">
+                        <div class="admin-card">
+                            <h3>Train Management</h3>
+                            <button class="btn primary" id="add-train-btn">Add Train</button>
+                            <button class="btn secondary" id="manage-trains-btn">Manage Trains</button>
+                        </div>
+                        <div class="admin-card">
+                            <h3>User Management</h3>
+                            <button class="btn primary" id="manage-users-btn">Manage Users</button>
+                        </div>
+                        <div class="admin-card">
+                            <h3>System</h3>
+                            <button class="btn danger" id="clean-system-btn">Clean System</button>
+                            <button class="btn danger" id="exit-system-btn">Exit System</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Add Train Modal -->
+    <div id="add-train-modal" class="modal">
+        <div class="modal-content large">
+            <span class="close">&times;</span>
+            <h2>Add New Train</h2>
+            <form id="add-train-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="train-id">Train ID</label>
+                        <input type="text" id="train-id" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="station-num">Number of Stations</label>
+                        <input type="number" id="station-num" min="2" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="seat-num">Seat Number</label>
+                        <input type="number" id="seat-num" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="train-type">Train Type</label>
+                        <select id="train-type">
+                            <option value="G">G</option>
+                            <option value="D">D</option>
+                            <option value="T">T</option>
+                            <option value="K">K</option>
+                            <option value="Z">Z</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="stations">Stations (comma separated)</label>
+                    <input type="text" id="stations" placeholder="Beijing,Shanghai,Nanjing" required>
+                </div>
+                <div class="form-group">
+                    <label for="prices">Prices (comma separated)</label>
+                    <input type="text" id="prices" placeholder="100,150,200" required>
+                </div>
+                <div class="form-group">
+                    <label for="start-time">Start Time (HH:MM)</label>
+                    <input type="time" id="start-time" required>
+                </div>
+                <div class="form-group">
+                    <label for="travel-times">Travel Times between stations (minutes, comma separated)</label>
+                    <input type="text" id="travel-times" placeholder="120,90,60" required>
+                </div>
+                <div class="form-group">
+                    <label for="stopover-times">Stopover Times (minutes, comma separated)</label>
+                    <input type="text" id="stopover-times" placeholder="5,10,5" required>
+                </div>
+                <div class="form-group">
+                    <label for="sale-date">Sale Date Range</label>
+                    <input type="text" id="sale-date" placeholder="MM-DD|MM-DD (e.g., 06-01|12-31)" required>
+                </div>
+                <button type="submit" class="btn primary">Add Train</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Buy Ticket Modal -->
+    <div id="buy-ticket-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Buy Ticket</h2>
+            <div id="ticket-details"></div>
+            <form id="buy-ticket-form">
+                <div class="form-group">
+                    <label for="ticket-num">Number of Tickets</label>
+                    <input type="number" id="ticket-num" min="1" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="queue-option">
+                        Join queue if no seats available
+                    </label>
+                </div>
+                <button type="submit" class="btn primary">Buy Ticket</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
