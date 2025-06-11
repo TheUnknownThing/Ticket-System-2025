@@ -10,6 +10,7 @@
 #include "utils/string32.hpp"
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <ostream>
 #include <string>
 
@@ -95,9 +96,10 @@ struct Order {
 
 class OrderManager {
 private:
-  BPTStorage<string32, Order> orderDB; // username -> Order
-  BPTStorage<std::pair<string32, int>, Order>
+  BPTStorage<size_t, Order, 500, 17> orderDB; // username -> Order
+  BPTStorage<std::pair<string32, int>, Order, 80, 17>
       pendingQueue; // <trainID, depDate> -> Order
+  CustomStringHasher stringHasher;
 
   TrainManager *trainManager_ptr;
 
@@ -151,7 +153,7 @@ private:
 };
 
 OrderManager::OrderManager(const std::string &orderFile, TrainManager *tm)
-    : orderDB(orderFile + "_order", string32::string32_MAX()),
+    : orderDB(orderFile + "_order", std::numeric_limits<size_t>::max()),
       pendingQueue(orderFile + "_pending",
                    std::make_pair(string32::string32_MAX(), INT_MAX)),
       trainManager_ptr(tm) {
@@ -160,7 +162,7 @@ OrderManager::OrderManager(const std::string &orderFile, TrainManager *tm)
 
 vector<Order> OrderManager::queryOrder(const string32 &username) {
   LOG("Querying orders for user: " + username.toString());
-  vector<Order> orders = orderDB.find(username);
+  vector<Order> orders = orderDB.find(stringHasher(username.c_str()));
   LOG("Found " + std::to_string(orders.size()) +
       " orders for user: " + username.toString());
   return orders;
@@ -201,7 +203,7 @@ int OrderManager::buyTicket(const string32 &username, const string32 &trainID,
                    to_station_name, to_idx, DateTime(origin_date_mmdd),
                    departureFromStation, arrivalAtStation, price, num_tickets,
                    SUCCESS, timestamp);
-    orderDB.insert(username, newOrder);
+    orderDB.insert(stringHasher(username.c_str()), newOrder);
     LOG("Ticket purchase successful - User: " + username.toString() +
         ", Train: " + trainID.toString() + ", Price: " + std::to_string(price));
     return price;
@@ -216,7 +218,7 @@ int OrderManager::buyTicket(const string32 &username, const string32 &trainID,
                      to_station_name, to_idx, DateTime(origin_date_mmdd),
                      departureFromStation, arrivalAtStation, price, num_tickets,
                      PENDING, timestamp);
-      orderDB.insert(username, newOrder);
+      orderDB.insert(stringHasher(username.c_str()), newOrder);
       pendingQueue.insert(std::make_pair(trainID, origin_date_mmdd), newOrder);
       LOG("Ticket purchase queued - User: " + username.toString() +
           ", Train: " + trainID.toString());
@@ -239,7 +241,7 @@ bool OrderManager::refundTicket(const string32 &username,
     return false;
   }
 
-  vector<Order> userOrders = orderDB.find(username);
+  vector<Order> userOrders = orderDB.find(stringHasher(username.c_str()));
 
   if (static_cast<size_t>(orderIndex) > userOrders.size()) {
     ERROR("Order index out of range - User: " + username.toString() +
@@ -261,7 +263,7 @@ bool OrderManager::refundTicket(const string32 &username,
   auto originalState = orderToRefund.status;
 
   if (orderToRefund.status == SUCCESS || orderToRefund.status == PENDING) {
-    orderDB.remove(username, orderToRefund);
+    orderDB.remove(stringHasher(username.c_str()), orderToRefund);
     if (originalState == PENDING) {
       pendingQueue.remove(
           std::make_pair(orderToRefund.trainID,
@@ -269,7 +271,7 @@ bool OrderManager::refundTicket(const string32 &username,
           orderToRefund);
     }
     orderToRefund.status = REFUNDED;
-    orderDB.insert(username, orderToRefund);
+    orderDB.insert(stringHasher(username.c_str()), orderToRefund);
 
     if (originalState == SUCCESS) {
       int from_idx = orderToRefund.from_station_idx;
@@ -315,10 +317,10 @@ void OrderManager::processPendingOrders(const string32 &trainID,
     if (success) {
       pendingQueue.remove(std::make_pair(trainID, origin_date_mmdd),
                           pendingOrder);
-      orderDB.remove(pendingOrder.username, pendingOrder);
+      orderDB.remove(stringHasher(pendingOrder.username.c_str()), pendingOrder);
       Order updatedOrder = pendingOrder;
       updatedOrder.status = SUCCESS;
-      orderDB.insert(updatedOrder.username, updatedOrder);
+      orderDB.insert(stringHasher(updatedOrder.username.c_str()), updatedOrder);
       processedCount++;
 
       LOG("Pending order promoted to SUCCESS - User: " +

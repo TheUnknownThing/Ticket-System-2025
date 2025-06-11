@@ -32,12 +32,8 @@ struct User {
     return username <= other.username;
   }
 
-  bool operator>(const User &other) const {
-    return username > other.username;
-  }
-  bool operator<(const User &other) const {
-    return username < other.username;
-  }
+  bool operator>(const User &other) const { return username > other.username; }
+  bool operator<(const User &other) const { return username < other.username; }
 
   friend std::ostream &operator<<(std::ostream &os, const User &user) {
     if (user == User())
@@ -50,8 +46,8 @@ struct User {
 
 class UserManager {
 private:
-  BPTStorage<size_t, User> userDB; // hashedUsername -> User
-  map<string32, int> loggedInUsers; // username -> privilege
+  BPTStorage<size_t, User, 500, 29> userDB; // hashedUsername -> User
+  map<string32, int> loggedInUsers;         // username -> privilege
   CustomStringHasher stringHasher;
 
 public:
@@ -71,7 +67,7 @@ public:
 
   void clean();
   void clearLoggedInUsers();
-  
+
   bool isLoggedIn(const string32 &username) const;
 
 private:
@@ -98,7 +94,8 @@ bool UserManager::addUser(const string32 &curUser, const string32 &username,
     privilege = 10; // First user gets max privilege
   }
 
-  User newUser(username, stringHasher(password.c_str()), name, mailAddr, privilege);
+  User newUser(username, stringHasher(password.c_str()), name, mailAddr,
+               privilege);
   userDB.insert(stringHasher(username.c_str()), newUser);
   return true;
 }

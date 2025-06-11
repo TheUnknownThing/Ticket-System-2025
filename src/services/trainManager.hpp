@@ -136,10 +136,11 @@ class TrainManager {
   friend class OrderManager;
 
 private:
-  BPTStorage<size_t, Train> trainDB; // hashedID -> Train
-  BPTStorage<std::pair<size_t, size_t>, size_t, 500, 300>
+  BPTStorage<size_t, Train, 500, 30> trainDB; // hashedID -> Train
+  BPTStorage<std::pair<size_t, size_t>, size_t, 250, 500>
       ticketLookupDB; // stationName, stationName -> hashedID
-  BPTStorage<size_t, size_t> transferLookupDB; // fromStation -> hashedID
+  BPTStorage<size_t, size_t, 500, 500>
+      transferLookupDB; // fromStation -> hashedID
   StationBucketManager stationBucketManager;
   TicketBucketManager ticketBucketManager;
   CustomStringHasher stringHasher;
@@ -462,8 +463,7 @@ int TrainManager::releaseTrain(const string32 &trainID) {
       ticketLookupDB.insert(std::make_pair(hashedStation[i], hashedStation[j]),
                             hashedTrainID); // from, to -> trainID
     }
-      transferLookupDB.insert(hashedStation[i], hashedTrainID);
-  
+    transferLookupDB.insert(hashedStation[i], hashedTrainID);
   }
 
   trainToRelease.ticketBucketID = ticket_bID;
@@ -633,8 +633,7 @@ vector<TicketCandidate> TrainManager::querySingle(const string32 &from,
         transferDate.addDuration(1440);
         queryDate.addDuration(1440);
       }
-      if (queryDate.getDateMMDD() >
-          train.saleEndDate.getDateMMDD()) {
+      if (queryDate.getDateMMDD() > train.saleEndDate.getDateMMDD()) {
         continue; // No valid transfer date
       }
     }
@@ -833,14 +832,15 @@ std::string TrainManager::queryTransfer(const string32 &from,
         }
 
         int currentTotalPrice = ticket1.price + ticket2.price;
-        int currentTotalDuration = ticket1.departureDateTime.calcDuration(ticket2.endDateTime);
+        int currentTotalDuration =
+            ticket1.departureDateTime.calcDuration(ticket2.endDateTime);
 
-        LOG("Evaluating transfer: " + ticket1.trainID.toString() +
-            " -> " + ticket2.trainID.toString() + " with total price " +
+        LOG("Evaluating transfer: " + ticket1.trainID.toString() + " -> " +
+            ticket2.trainID.toString() + " with total price " +
             std::to_string(currentTotalPrice) + " and total duration " +
-            std::to_string(currentTotalDuration) + "; Max Price: " +
-            std::to_string(bestTotalPrice) + ", Max Duration: " +
-            std::to_string(bestTotalDuration));
+            std::to_string(currentTotalDuration) +
+            "; Max Price: " + std::to_string(bestTotalPrice) +
+            ", Max Duration: " + std::to_string(bestTotalDuration));
 
         if (sortBy == "cost") {
           // Cost as primary, time as secondary, train1 ID as tertiary, train2
