@@ -4,6 +4,7 @@
 #include "stl/map.hpp"
 #include "storage/bptStorage.hpp"
 #include "utils/string32.hpp"
+#include <limits>
 #include <string>
 
 using sjtu::map;
@@ -11,13 +12,13 @@ using sjtu::string32;
 
 struct User {
   string32 username;
-  string32 password;
+  size_t password;
   string32 name;
   string32 mailAddr;
   int privilege;
 
   User() = default;
-  User(const string32 &un, const string32 &pw, const string32 &nm,
+  User(const string32 &un, const size_t pw, const string32 &nm,
        const string32 &ma, int priv)
       : username(un), password(pw), name(nm), mailAddr(ma), privilege(priv) {}
 
@@ -49,8 +50,9 @@ struct User {
 
 class UserManager {
 private:
-  BPTStorage<string32, User> userDB;
+  BPTStorage<size_t, User> userDB; // hashedUsername -> User
   map<string32, int> loggedInUsers; // username -> privilege
+  CustomStringHasher stringHasher;
 
 public:
   UserManager(const std::string &filename);
@@ -79,12 +81,12 @@ private:
 };
 
 UserManager::UserManager(const std::string &filename)
-    : userDB(filename + "_user", string32::string32_MAX()) {}
+    : userDB(filename + "_user", std::numeric_limits<size_t>::max()) {}
 
 bool UserManager::addUser(const string32 &curUser, const string32 &username,
                           const string32 &password, const string32 &name,
                           const string32 &mailAddr, int privilege) {
-  if (userDB.find(username).size() > 0)
+  if (userDB.find(stringHasher(username.c_str())).size() > 0)
     return false;
 
   if (!isFirstUser()) {
@@ -96,14 +98,14 @@ bool UserManager::addUser(const string32 &curUser, const string32 &username,
     privilege = 10; // First user gets max privilege
   }
 
-  User newUser(username, password, name, mailAddr, privilege);
-  userDB.insert(username, newUser);
+  User newUser(username, stringHasher(password.c_str()), name, mailAddr, privilege);
+  userDB.insert(stringHasher(username.c_str()), newUser);
   return true;
 }
 
 bool UserManager::login(const string32 &username, const string32 &password) {
-  auto users = userDB.find(username);
-  if (users.empty() || users[0].password != password)
+  auto users = userDB.find(stringHasher(username.c_str()));
+  if (users.empty() || users[0].password != stringHasher(password.c_str()))
     return false;
   if (isLoggedIn(username))
     return false;
@@ -124,7 +126,7 @@ User UserManager::queryProfile(const string32 &curUser,
   if (!isLoggedIn(curUser))
     return User();
 
-  auto users = userDB.find(username);
+  auto users = userDB.find(stringHasher(username.c_str()));
   if (users.empty())
     return User();
 
@@ -141,7 +143,7 @@ User UserManager::modifyProfile(const string32 &curUser,
   if (!isLoggedIn(curUser))
     return User();
 
-  auto users = userDB.find(username);
+  auto users = userDB.find(stringHasher(username.c_str()));
   if (users.empty())
     return User();
 
@@ -153,7 +155,7 @@ User UserManager::modifyProfile(const string32 &curUser,
 
   User modified = users[0];
   if (!password.empty())
-    modified.password = password;
+    modified.password = stringHasher(password.c_str());
   if (!name.empty())
     modified.name = name;
   if (!mailAddr.empty())
@@ -161,8 +163,8 @@ User UserManager::modifyProfile(const string32 &curUser,
   if (privilege != -1)
     modified.privilege = privilege;
 
-  userDB.remove(username, users[0]);
-  userDB.insert(username, modified);
+  userDB.remove(stringHasher(username.c_str()), users[0]);
+  userDB.insert(stringHasher(username.c_str()), modified);
   return modified;
 }
 

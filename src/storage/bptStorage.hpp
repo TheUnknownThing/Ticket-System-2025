@@ -4,6 +4,7 @@
 #include "bptNode.hpp"
 #include "cachedFileOperation.hpp"
 #include "stl/vector.hpp"
+#include "storage/cache/fileOperation.hpp"
 #include <functional>
 
 template <typename Key, typename Value, size_t NODE_SIZE = 40,
@@ -44,8 +45,8 @@ public:
   bool isEmpty = true;
 
 private:
-  CachedFileOperation<NodeType, 2, 30, 50> node_file;
-  CachedFileOperation<BlockType, 2, 30, 50> data_file;
+  FileOperation<NodeType, 2> node_file;
+  FileOperation<BlockType, 2> data_file;
 
   std::string node_file_name;
   std::string data_file_name;

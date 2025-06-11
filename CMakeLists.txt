@@ -3,13 +3,12 @@ project(Ticket-System-2025)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
 
 # Create a header-only library for template classes
 add_library(ticket_system_lib INTERFACE)
 
 include_directories(ticket_system_lib INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
