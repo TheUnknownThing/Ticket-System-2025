@@ -4,259 +4,221 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Railway Ticket System</title>
-    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
-<body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-brand">
-                <i class="fas fa-train"></i>
-                <span>Ticket</span>
+<body class="bg-gray-50">
+    <div x-data="railwayApp()" x-cloak class="min-h-screen">
+        <!-- Navigation -->
+        <nav class="bg-gray-600 text-white shadow-lg">
+            <div class="max-w-7xl mx-auto px-4">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-train text-2xl"></i>
+                        <h1 class="text-xl font-bold">Railway Ticket System</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <template x-if="!isLoggedIn">
+                            <div class="space-x-2">
+                                <button @click="showLogin = true" class="px-4 py-2 bg-blue-700 rounded hover:bg-blue-800">
+                                    <i class="fas fa-sign-in-alt mr-2"></i>Login
+                                </button>
+                                <button @click="showRegister = true" class="px-4 py-2 bg-green-600 rounded hover:bg-green-700">
+                                    <i class="fas fa-user-plus mr-2"></i>Register
+                                </button>
+                            </div>
+                        </template>
+                        <template x-if="isLoggedIn">
+                            <div class="flex items-center space-x-4">
+                                <span class="text-sm">Welcome, <span x-text="currentUser.username"></span></span>
+                                <button @click="logout()" class="px-4 py-2 bg-red-600 rounded hover:bg-red-700">
+                                    <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
             </div>
-            <div class="nav-menu" id="nav-menu">
-                <a href="#" class="nav-link" data-section="search">Search</a>
-                <a href="#" class="nav-link" data-section="orders">My Orders</a>
-                <a href="#" class="nav-link" data-section="profile">Profile</a>
-                <a href="#" class="nav-link" data-section="admin">Admin</a>
-                <button id="logout-btn" class="nav-btn" style="display: none;">Logout</button>
-            </div>
-            <div class="auth-section" id="auth-section">
-                <button class="nav-btn" id="login-btn">Login</button>
-                <button class="nav-btn secondary" id="register-btn">Register</button>
-            </div>
-        </div>
-    </nav>
+        </nav>
 
-    <main class="main-content">
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto px-4 py-8">
+            <!-- Not Logged In View -->
+            <template x-if="!isLoggedIn">
+                <div class="text-center py-16">
+                    <i class="fas fa-train text-6xl text-blue-600 mb-4"></i>
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">Welcome to Railway Ticket System</h2>
+                    <p class="text-gray-600 mb-8">Please login or register to access the ticket booking system</p>
+                    <div class="space-x-4">
+                        <button @click="showLogin = true" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Login
+                        </button>
+                        <button @click="showRegister = true" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                            Register
+                        </button>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Logged In View -->
+            <template x-if="isLoggedIn">
+                <div>
+                    <!-- Tab Navigation -->
+                    <div class="mb-8 border-b border-gray-200">
+                        <nav class="flex space-x-8">
+                            <button @click="activeTab = 'search'" 
+                                    :class="activeTab === 'search' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                    class="whitespace-nowrap py-4 px-1 border-b-2 font-medium">
+                                <i class="fas fa-search mr-2"></i>Search Tickets
+                            </button>
+                            <button @click="activeTab = 'orders'" 
+                                    :class="activeTab === 'orders' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                    class="whitespace-nowrap py-4 px-1 border-b-2 font-medium">
+                                <i class="fas fa-ticket-alt mr-2"></i>My Orders
+                            </button>
+                            <button @click="activeTab = 'profile'" 
+                                    :class="activeTab === 'profile' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                    class="whitespace-nowrap py-4 px-1 border-b-2 font-medium">
+                                <i class="fas fa-user mr-2"></i>Profile
+                            </button>
+                            <template x-if="currentUser.privilege >= 5">
+                                <button @click="activeTab = 'admin'" 
+                                        :class="activeTab === 'admin' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                        class="whitespace-nowrap py-4 px-1 border-b-2 font-medium">
+                                    <i class="fas fa-cog mr-2"></i>Admin
+                                </button>
+                            </template>
+                        </nav>
+                    </div>
+
+                    <!-- Tab Content -->
+                    <div x-show="activeTab === 'search'" x-transition>
+                        <div x-html="renderSearchTab()"></div>
+                    </div>
+
+                    <div x-show="activeTab === 'orders'" x-transition>
+                        <div x-html="renderOrdersTab()"></div>
+                    </div>
+
+                    <div x-show="activeTab === 'profile'" x-transition>
+                        <div x-html="renderProfileTab()"></div>
+                    </div>
+
+                    <template x-if="currentUser.privilege >= 5">
+                        <div x-show="activeTab === 'admin'" x-transition>
+                            <div x-html="renderAdminTab()"></div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </div>
+
         <!-- Login Modal -->
-        <div id="login-modal" class="modal">
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <h2>Login</h2>
-                <form id="login-form">
-                    <div class="form-group">
-                        <label for="login-username">Username</label>
-                        <input type="text" id="login-username" required>
+        <div x-show="showLogin" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50" x-transition>
+            <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-semibold">Login</h3>
+                    <button @click="showLogin = false" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <form @submit.prevent="login()">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                        <input x-model="loginForm.username" type="text" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    <div class="form-group">
-                        <label for="login-password">Password</label>
-                        <input type="password" id="login-password" required>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <input x-model="loginForm.password" type="password" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    <button type="submit" class="btn primary">Login</button>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Login
+                    </button>
                 </form>
             </div>
         </div>
 
         <!-- Register Modal -->
-        <div id="register-modal" class="modal">
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <h2>Register</h2>
-                <form id="register-form">
-                    <div class="form-group">
-                        <label for="reg-cur-username">Admin Username (for approval)</label>
-                        <input type="text" id="reg-cur-username" placeholder="Leave empty for first user">
+        <div x-show="showRegister" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50" x-transition>
+            <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-semibold">Register</h3>
+                    <button @click="showRegister = false" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <form @submit.prevent="register()">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                        <input x-model="registerForm.username" type="text" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    <div class="form-group">
-                        <label for="reg-username">Username</label>
-                        <input type="text" id="reg-username" required>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <input x-model="registerForm.password" type="password" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    <div class="form-group">
-                        <label for="reg-password">Password</label>
-                        <input type="password" id="reg-password" required>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                        <input x-model="registerForm.name" type="text" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    <div class="form-group">
-                        <label for="reg-name">Full Name</label>
-                        <input type="text" id="reg-name" required>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <input x-model="registerForm.mailAddr" type="email" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    <div class="form-group">
-                        <label for="reg-email">Email</label>
-                        <input type="email" id="reg-email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="reg-privilege">Privilege Level</label>
-                        <select id="reg-privilege">
-                            <option value="1">User (1)</option>
-                            <option value="3">Moderator (3)</option>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Privilege Level</label>
+                        <select x-model="registerForm.privilege" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="1">Regular User (1)</option>
+                            <option value="3">VIP User (3)</option>
+                            <option value="5">Manager (5)</option>
                             <option value="10">Admin (10)</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn primary">Register</button>
+                    <button type="submit" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                        Register
+                    </button>
                 </form>
             </div>
         </div>
 
-        <!-- Search Section -->
-        <section id="search-section" class="section active">
-            <div class="container">
-                <h1>Search Train Tickets</h1>
-                <div class="search-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="from-station">From</label>
-                            <input type="text" id="from-station" placeholder="Departure station">
-                        </div>
-                        <div class="form-group">
-                            <label for="to-station">To</label>
-                            <input type="text" id="to-station" placeholder="Arrival station">
-                        </div>
-                        <div class="form-group">
-                            <label for="travel-date">Date</label>
-                            <input type="date" id="travel-date">
-                        </div>
-                        <div class="form-group">
-                            <label for="sort-by">Sort by</label>
-                            <select id="sort-by">
-                                <option value="time">Time</option>
-                                <option value="cost">Cost</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-actions">
-                        <button id="search-btn" class="btn primary">Search Tickets</button>
-                        <button id="search-transfer-btn" class="btn secondary">Search with Transfer</button>
-                    </div>
+        <!-- Loading Overlay -->
+        <div x-show="loading" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50" x-transition>
+            <div class="bg-white rounded-lg p-8 flex items-center space-x-4">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span>Loading...</span>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div x-show="toast.show" x-transition 
+             class="fixed top-4 right-4 max-w-sm bg-white border rounded-lg shadow-lg z-50">
+            <div class="flex p-4">
+                <div class="flex-shrink-0">
+                    <i :class="toast.type === 'success' ? 'fas fa-check-circle text-green-400' : 'fas fa-exclamation-circle text-red-400'"></i>
                 </div>
-                
-                <div id="search-results" class="search-results" style="display: none;">
-                    <h3>Search Results</h3>
-                    <div id="results-container"></div>
+                <div class="ml-3 flex-1">
+                    <p class="text-sm font-medium text-gray-900" x-text="toast.title"></p>
+                    <p class="text-sm text-gray-500" x-text="toast.message"></p>
+                </div>
+                <div class="ml-4 flex-shrink-0 flex">
+                    <button @click="toast.show = false" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
             </div>
-        </section>
-
-        <!-- Orders Section -->
-        <section id="orders-section" class="section">
-            <div class="container">
-                <h1>My Orders</h1>
-                <div id="orders-container" class="orders-container">
-                    <p class="login-required">Please login to view your orders.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Profile Section -->
-        <section id="profile-section" class="section">
-            <div class="container">
-                <h1>User Profile</h1>
-                <div id="profile-container" class="profile-container">
-                    <p class="login-required">Please login to view your profile.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Admin Section -->
-        <section id="admin-section" class="section">
-            <div class="container">
-                <h1>Admin Panel</h1>
-                <div id="admin-container" class="admin-container">
-                    <p class="login-required">Please login with admin privileges.</p>
-                    
-                    <div class="admin-actions" style="display: none;">
-                        <div class="admin-card">
-                            <h3>Train Management</h3>
-                            <button class="btn primary" id="add-train-btn">Add Train</button>
-                            <button class="btn secondary" id="manage-trains-btn">Manage Trains</button>
-                        </div>
-                        <div class="admin-card">
-                            <h3>User Management</h3>
-                            <button class="btn primary" id="manage-users-btn">Manage Users</button>
-                        </div>
-                        <div class="admin-card">
-                            <h3>System</h3>
-                            <button class="btn danger" id="clean-system-btn">Clean System</button>
-                            <button class="btn danger" id="exit-system-btn">Exit System</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Add Train Modal -->
-    <div id="add-train-modal" class="modal">
-        <div class="modal-content large">
-            <span class="close">&times;</span>
-            <h2>Add New Train</h2>
-            <form id="add-train-form">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="train-id">Train ID</label>
-                        <input type="text" id="train-id" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="station-num">Number of Stations</label>
-                        <input type="number" id="station-num" min="2" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="seat-num">Seat Number</label>
-                        <input type="number" id="seat-num" min="1" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="train-type">Train Type</label>
-                        <select id="train-type">
-                            <option value="G">G</option>
-                            <option value="D">D</option>
-                            <option value="T">T</option>
-                            <option value="K">K</option>
-                            <option value="Z">Z</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="stations">Stations (comma separated)</label>
-                    <input type="text" id="stations" placeholder="Beijing,Shanghai,Nanjing" required>
-                </div>
-                <div class="form-group">
-                    <label for="prices">Prices (comma separated)</label>
-                    <input type="text" id="prices" placeholder="100,150,200" required>
-                </div>
-                <div class="form-group">
-                    <label for="start-time">Start Time (HH:MM)</label>
-                    <input type="time" id="start-time" required>
-                </div>
-                <div class="form-group">
-                    <label for="travel-times">Travel Times between stations (minutes, comma separated)</label>
-                    <input type="text" id="travel-times" placeholder="120,90,60" required>
-                </div>
-                <div class="form-group">
-                    <label for="stopover-times">Stopover Times (minutes, comma separated)</label>
-                    <input type="text" id="stopover-times" placeholder="5,10,5" required>
-                </div>
-                <div class="form-group">
-                    <label for="sale-date">Sale Date Range</label>
-                    <input type="text" id="sale-date" placeholder="MM-DD|MM-DD (e.g., 06-01|12-31)" required>
-                </div>
-                <button type="submit" class="btn primary">Add Train</button>
-            </form>
         </div>
     </div>
 
-    <!-- Buy Ticket Modal -->
-    <div id="buy-ticket-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Buy Ticket</h2>
-            <div id="ticket-details"></div>
-            <form id="buy-ticket-form">
-                <div class="form-group">
-                    <label for="ticket-num">Number of Tickets</label>
-                    <input type="number" id="ticket-num" min="1" value="1" required>
-                </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="queue-option">
-                        Join queue if no seats available
-                    </label>
-                </div>
-                <button type="submit" class="btn primary">Buy Ticket</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="notification" class="notification"></div>
-
-    <script src="script.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
