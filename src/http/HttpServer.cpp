@@ -1,3 +1,4 @@
+#define DEBUG_FLAG
 #include "../services/orderManager.hpp"
 #include "../services/trainManager.hpp"
 #include "../services/userManager.hpp"
@@ -202,7 +203,7 @@ int main(int argc, char *argv[]) {
             static_cast<std::string>(b["date"].s()), b["num"].i(),
             static_cast<std::string>(b["from"].s()),
             static_cast<std::string>(b["to"].s()), queue,
-            /*timestamp*/ static_cast<int>(time(nullptr)));
+            /*timestamp*/ static_cast<int>(10000));
         if (total == -1)
           return crow::response{fail()};
         auto j = ok();
@@ -224,13 +225,14 @@ int main(int argc, char *argv[]) {
       });
 
   // refund_ticket
-  CROW_ROUTE(app, "/orders/<string>")
-      .methods("DELETE"_method)([](const crow::request &req, std::string user) {
+  CROW_ROUTE(app, "/orders/<string>/refund")
+      .methods("POST"_method)([](const crow::request &req, std::string user) {
         if (!ctx.user.isLoggedIn(user))
           return crow::response{fail()};
-        int idx = 1;
-        if (auto p = req.url_params.get("index"))
-          idx = std::stoi(p);
+        auto body = crow::json::load(req.body);
+        if (!body)
+          return crow::response(400);
+        int idx = body["index"].i();
         bool r = ctx.order.refundTicket(user, idx);
         return crow::response{r ? ok() : fail()};
       });
@@ -243,10 +245,9 @@ int main(int argc, char *argv[]) {
   CROW_ROUTE(app, "/system/exit").methods("POST"_method)([] {
     ctx.user.clearLoggedInUsers();
     exit(0);
-    return crow::response{}; // never reached
   });
 
   crow::logger::setLogLevel(crow::LogLevel::Debug);
-  app.bindaddr("0.0.0.0").port(9988).run();
+  app.bindaddr("0.0.0.0").port(9988).concurrency(1).run();
   return 0;
 }

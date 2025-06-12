@@ -173,6 +173,9 @@ function railwayApp() {
             });
 
             if (result.status === 0) {
+                if (result.ticket_list && result.ticket_list.length > 0) {
+                    result.ticket_list.shift();
+                }
                 this.tickets = result.ticket_list || [];
                 this.showToast('success', 'Success', `Found ${this.tickets.length} tickets`);
             } else {
@@ -187,10 +190,13 @@ function railwayApp() {
                 return;
             }
 
+            const dateParts = this.searchForm.date.split('-');
+            const shortDate = dateParts.length === 3 ? `${dateParts[1]}-${dateParts[2]}` : this.searchForm.date;
+
             const result = await this.apiCall('/transfer', 'GET', null, {
                 from: this.searchForm.from,
                 to: this.searchForm.to,
-                date: this.searchForm.date,
+                date: shortDate,
                 sort: this.searchForm.sort
             });
 
@@ -204,9 +210,13 @@ function railwayApp() {
         },
 
         async buyTicket(trainID, num = 1, queue = false) {
+
+            const dateParts = this.searchForm.date.split('-');
+            const shortDate = dateParts.length === 3 ? `${dateParts[1]}-${dateParts[2]}` : this.searchForm.date;
+
             const result = await this.apiCall(`/orders/${this.currentUser.username}/buy`, 'POST', {
                 trainID: trainID,
-                date: this.searchForm.date,
+                date: shortDate,
                 num: num,
                 from: this.searchForm.from,
                 to: this.searchForm.to,
@@ -234,7 +244,7 @@ function railwayApp() {
         },
 
         async refundTicket(orderIndex) {
-            const result = await this.apiCall(`/orders/${this.currentUser.username}`, 'DELETE', null, {
+            const result = await this.apiCall(`/orders/${this.currentUser.username}/refund`, 'POST', {
                 index: orderIndex
             });
 
